@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 import {
   WebSocketGateway,
   SubscribeMessage,
@@ -22,6 +21,7 @@ export class ChatGateway
   afterInit(server: Server) {
     console.log('WebSocket initialized');
   }
+
   sendMessageToClients(message: string) {
     this.server.emit('message', { sender: 'Server', message });
   }
@@ -45,13 +45,20 @@ export class ChatGateway
   }
 
   @SubscribeMessage('joinRoom')
-  async handleJoinRoom(client: Socket, room: string){
-  await  client.join(room);
-    this.server.to(room).emit('message', {sender:'Server', message:`User joined room ${room}`});
+  async handleJoinRoom(client: Socket, room: string) {
+    await client.join(room);
+    this.server
+      .to(room)
+      .emit('message', {
+        sender: 'Server',
+        message: `User joined room ${room}`,
+      });
   }
 
   @SubscribeMessage('messageRoom')
-  handleMessageRoom(client: Socket, data : { room: string; message: string}){
-    this.server.to(data.room).emit('message', {sender: client.id, message: data.message});
+  handleMessageRoom(client: Socket, data: { room: string; message: string }) {
+    this.server
+      .to(data.room)
+      .emit('message', { sender: client.id, message: data.message });
   }
 }

@@ -9,6 +9,8 @@ async function bootstrap() {
   app.useWebSocketAdapter(new IoAdapter(app)); // Allow WebSocket connections
 
   // await app.listen(process.env.PORT ?? 3000);
-  await app.listen(3000);
+  await app.listen(4000, () => {
+    console.log('Connected at port 4000');
+  });
 }
 bootstrap();

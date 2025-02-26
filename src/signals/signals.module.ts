@@ -12,5 +12,6 @@ import { SignalGateway } from './signal.gateway';
   ],
   controllers: [SignalController],
   providers: [SignalService, SignalGateway],
+  exports: [SignalGateway], //  Make it accessible in other modules
 })
 export class SignalModule {}
