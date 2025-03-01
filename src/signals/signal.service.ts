@@ -43,11 +43,11 @@ export class SignalService {
   }
 
 
-  async findAllPaginated(page: number = 1, pageSize: number = 5) {
+  async findAllPaginated(page: number = 1, pageSize: number = 10) {
     const skip = (page - 1) * pageSize; // Calculate offset
   
     const signals = await this.signalModel
-      .find()
+      .find({expired:false})
       .sort({ createdAt: -1 }) // Sort latest first
       .skip(skip)
       .limit(pageSize)

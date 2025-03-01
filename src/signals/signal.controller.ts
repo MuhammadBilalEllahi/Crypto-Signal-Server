@@ -7,7 +7,7 @@ import * as moment from 'moment';
 export class SignalController {
   constructor(private readonly signalService: SignalService) { }
 
-  @Post()
+  @Post('admin/create')
   async create(@Body() signal: Signal, @Req() req) {
     console.log(`Admin ${req.user.email} created a new signal`);
     return this.signalService.create(signal);
@@ -32,7 +32,7 @@ export class SignalController {
     @Query('pageSize') pageSize: string
   ) {
     const page = parseInt(pageId) || 1; // Default to page 1 if not provided
-    const size = parseInt(pageSize) || 5; // Default to 5 signals per page
+    const size = parseInt(pageSize) || 10; // Default to 5 signals per page
 
     return this.signalService.findAllPaginated(page, size);
   }

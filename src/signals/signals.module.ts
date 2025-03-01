@@ -26,6 +26,6 @@ import { User, UserSchema } from 'src/user/user.schema';
 export class SignalModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer.apply(AuthMiddleware).forRoutes(SignalController);
-    consumer.apply(AdminMiddleware).forRoutes({ path: 'signals', method: RequestMethod.POST });
+    consumer.apply(AdminMiddleware).forRoutes({ path: 'signals/admin/create', method: RequestMethod.POST });
   } 
 }

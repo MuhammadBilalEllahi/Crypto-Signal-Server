@@ -1,5 +1,5 @@
 /* eslint-disable prettier/prettier */
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -31,6 +31,8 @@ import { ConfigModule } from '@nestjs/config';
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer.apply(FirebaseAuthMiddleware).forRoutes('*'); // Apply to all routes
-    consumer.apply(AdminMiddleware).forRoutes('signals'); // Protect signals (POST)
+    consumer.apply(AdminMiddleware).forRoutes({ path: 'signals/admin/create', method: RequestMethod.POST }); // Protect signals (POST)
+    
+
   }
 }
