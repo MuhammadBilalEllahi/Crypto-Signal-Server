@@ -9,6 +9,7 @@ import { SignalGateway } from './signal.gateway';
 import { AuthMiddleware } from 'src/auth/auth.middleware';
 import { AdminMiddleware } from 'src/auth/admin.middleware';
 import { UserModule } from 'src/user/user.module';
+import { User, UserSchema } from 'src/user/user.schema';
 
 
 @Module({
@@ -16,6 +17,7 @@ import { UserModule } from 'src/user/user.module';
     UserModule,
     MongooseModule.forFeature([{ name: Signal.name, schema: SignalSchema }]),
     forwardRef(() => SignalModule),
+    MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
   ],
   controllers: [SignalController],
   providers: [SignalService, SignalGateway],

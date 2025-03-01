@@ -40,6 +40,7 @@ export class AuthMiddleware implements NestMiddleware {
 
 
       console.log('Decoded Token Dara:', user.email, user.user_id);
+      // await  this.userService.setUserRole(user.user_id)
 
 
       if(!user){

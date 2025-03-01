@@ -1,10 +1,11 @@
 /* eslint-disable prettier/prettier */
 
 /* eslint-disable prettier/prettier */
-import { Injectable } from '@nestjs/common';
+import { Get, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User, UserDocument } from './user.schema';
+import * as admin from 'firebase-admin';
 
 @Injectable()
 export class UserService {
@@ -22,6 +23,7 @@ export class UserService {
     
     if (!user) {
       user = new this.userModel(userData);
+      // await  this.setUserRole(user.uid)
       await user.save();
     }
     
@@ -53,6 +55,22 @@ export class UserService {
   async deleteUser(uid: string): Promise<User | null> {
     return this.userModel.findOneAndDelete({ uid }).exec();
   }
+
+//   // NOT used..redundant
+//   @Get()
+//  async userFavourites(uid:string){
+//   return await this.userModel.find({uid}).select('favoriteSignals').populate('favoriteSignals')
+//  }
+
+
+ async setUserRole(uid: string) {
+  try {
+    await admin.auth().setCustomUserClaims(uid, { role: 'admin' });
+    return { message: 'Role set to user' };
+  } catch (error) {
+    throw new Error(`Error setting user role: ${error.message}`);
+  }
+}
 }
 
 

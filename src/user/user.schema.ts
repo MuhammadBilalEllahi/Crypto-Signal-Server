@@ -17,6 +17,8 @@ export class User {
 
   @Prop({default: []})
   favoriteSignals: []
+  // @Prop({ type: Map, of: Boolean, default: {} })
+  // favoriteSignals: Record<string, boolean>;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
