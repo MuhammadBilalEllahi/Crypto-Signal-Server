@@ -7,7 +7,7 @@ import {
   NestMiddleware,
   UnauthorizedException,
 } from '@nestjs/common';
-import * as admin from 'firebase-admin';
+// import * as admin from 'firebase-admin';
 import { Request, Response, NextFunction } from 'express';
 import { UserService } from '../user/user.service';
 import * as jwt from 'jsonwebtoken';
@@ -32,22 +32,26 @@ export class AuthMiddleware implements NestMiddleware {
         return res.status(401).json({ message: 'Invalid token' });
       }
       let user = decodedToken.payload;
+      if(!user){
+        return res.status(401).json({ message: 'Invalid token' });
+      }
+      const {user_id}= user as any;
 
-      user = await this.userService.findByFirebaseId(user.user_id as string);
+      user  = await this.userService.findByFirebaseId(user_id as string) as any;
       console.log("user found", user)
 
       
 
 
-      console.log('Decoded Token Dara:', user.email, user.user_id);
+      // console.log('Decoded Token Dara:', userObj.email, userObj.user_id);
       // await  this.userService.setUserRole(user.user_id)
 
 
       if(!user){
         user = decodedToken.payload;
         user = await this.userService.findOrCreate({
-          uid: user.user_id,
-          email: user.email,
+          uid: user.user_id ,
+          email: user.email ,
           role: 'user'
         });
       }
