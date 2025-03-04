@@ -5,6 +5,7 @@ import { Document } from 'mongoose';
 @Schema()
 export class Signal extends Document {
   @Prop({ required: true }) coin: string;
+  @Prop({ required: true }) type: 'GOLD' | 'Crypto' | 'Stock';
   @Prop({ required: true }) createdBy: string;
   @Prop({ required: true }) direction: 'Long' | 'Short';
   @Prop({ required: true }) portfolioPercentage: number;
@@ -13,7 +14,7 @@ export class Signal extends Document {
   @Prop({ required: true }) gainLossPercentage: number;
   @Prop({ required: true, default: Date.now }) createdAt: Date;
   @Prop({ required: true }) expireAt: Date;
-  @Prop({  default: false }) expired: boolean;
+  @Prop({ default: false }) expired: boolean;
 }
 
 export const SignalSchema = SchemaFactory.createForClass(Signal);
