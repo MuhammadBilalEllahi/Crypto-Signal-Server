@@ -33,7 +33,7 @@ export class SignalService {
   // }
 
   async findAll() {
-    const signals = await this.signalModel.find().limit(5).sort({ createdAt: -1 }).lean(); // Sort latest first
+    const signals = await this.signalModel.find({isLive:true}).limit(5).sort({ createdAt: -1 }).lean(); // Sort latest first
 
     return signals.map(signal => ({
       ...signal,
@@ -47,7 +47,7 @@ export class SignalService {
     const skip = (page - 1) * pageSize; // Calculate offset
   
     const signals = await this.signalModel
-      .find({expired:false})
+      .find({expired:false, isLive:true})
       .sort({ createdAt: -1 }) // Sort latest first
       .skip(skip)
       .limit(pageSize)
@@ -114,8 +114,8 @@ export class SignalService {
     const favoriteSignalIds = user?.favoriteSignals?.map((signal: any) => signal.toString()) || [];
   
     const [history, total] = await Promise.all([
-      this.signalModel.find({ expired: true }).skip(skip).limit(pageSize).lean(),
-      this.signalModel.countDocuments({ expired: true }),
+      this.signalModel.find({ expired: true, isLive:true }).skip(skip).limit(pageSize).lean(),
+      this.signalModel.countDocuments({ expired: true, isLive:true }),
     ]);
   
     // Add `isFavorite` flag to each signal

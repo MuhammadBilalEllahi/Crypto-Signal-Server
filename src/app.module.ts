@@ -3,15 +3,13 @@ import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/c
 import { MongooseModule } from '@nestjs/mongoose';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ChatGateway } from './chat/chat.gateway';
-import { ChatModule } from './chat/chat.module';
 import { SignalModule } from './signals/signals.module';
 import { WebSocketModule } from './websocket.module';
 import { UserModule } from './user/user.module';
 import { FirebaseAuthMiddleware } from './auth/firebase-auth.middleware';
 import { AdminMiddleware } from './auth/admin.middleware';
 import { ConfigModule } from '@nestjs/config';
-
+import { NewsAlertModule } from './news-alerts/news-alert.module';
 @Module({
   imports: [
     ConfigModule.forRoot(),
@@ -21,6 +19,7 @@ import { ConfigModule } from '@nestjs/config';
     //Connect to MongoDB
     UserModule,
     SignalModule,
+    NewsAlertModule,
     WebSocketModule,
 
    
