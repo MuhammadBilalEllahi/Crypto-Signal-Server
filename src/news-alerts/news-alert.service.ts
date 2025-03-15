@@ -168,6 +168,10 @@ export class NewsAlertService {
     return this.newsAlertModel.find(filter).sort({ createdAt: -1 }).exec();
   }
 
+  async findAllProfileReels(filter: { createdBy: string }): Promise<NewsAlert[]> {
+    return this.newsAlertModel.find(filter).sort({ createdAt: -1 }).exec();
+  }
+
   async findById(id: string): Promise<NewsAlert | null> {
     return this.newsAlertModel.findById(id).exec();
   }

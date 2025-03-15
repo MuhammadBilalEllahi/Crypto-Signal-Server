@@ -116,6 +116,11 @@ export class NewsAlertController {
     return this.newsAlertService.findAll({ isLive: true });
   }
 
+  @Get('admin/profile/reels')
+  async findProfileReels(@Query('createdBy') createdBy: string): Promise<NewsAlert[]> {
+    return this.newsAlertService.findAllProfileReels({ createdBy: createdBy });
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string): Promise<NewsAlert> {
     const newsAlert = await this.newsAlertService.findById(id);
