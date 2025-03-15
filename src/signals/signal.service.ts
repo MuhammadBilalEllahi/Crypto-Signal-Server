@@ -39,6 +39,7 @@ export class SignalService {
       ...signal,
       createdAt: moment(signal.createdAt).fromNow(), //  Format to "X days ago"
       expireAt: moment(signal.expireAt).format('D MMMM YYYY HH:mm'), //  Format to "3 March 2025 22:45"
+      createdFormatted: moment(signal.createdAt).format('D MMMM YYYY HH:mm'),
     }));
   }
 
@@ -55,10 +56,12 @@ export class SignalService {
   
     const totalSignals = await this.signalModel.countDocuments(); // Get total count for pagination info
   
+    console.log("signals",signals);
     return {
       signals: signals.map(signal => ({
         ...signal,
         createdAt: moment(signal.createdAt).fromNow(), // Format to "X days ago"
+        createdFormatted: moment(signal.createdAt).format('D MMMM YYYY HH:mm'), // Format to "3 March 2025 22:45"
         expireAt: moment(signal.expireAt).format('D MMMM YYYY HH:mm'), // Format to "3 March 2025 22:45"
       })),
       pagination: {
@@ -123,7 +126,7 @@ export class SignalService {
       ...signal,
       createdAt: moment(signal.createdAt).fromNow(), //  Format to "X days ago"
       expireAt: moment(signal.expireAt).format('D MMMM YYYY HH:mm'), //  Format to "3 March 2025 22:45"
-    
+      createdFormatted: moment(signal.createdAt).format('D MMMM YYYY HH:mm'),
       isFavorite: favoriteSignalIds.includes(signal._id.toString()), // Check if it's in favorites
     }));
 
@@ -183,6 +186,7 @@ async userFavouriteSignals(uid: string, page: number = 1, pageSize: number = 10)
       options: { skip, limit: pageSize },
     });
 
+    console.log("user Favourite Signals",user);
   if (!user || !user.favoriteSignals) {
     return { total: 0, page, pageSize, favorites: [], hasMore: false };
   }
@@ -194,7 +198,7 @@ async userFavouriteSignals(uid: string, page: number = 1, pageSize: number = 10)
     isFavorite: true,
     createdAt: moment(signal.createdAt).fromNow(), //  Format to "X days ago"
     expireAt: moment(signal.expireAt).format('D MMMM YYYY HH:mm'), //  Format to "3 March 2025 22:45"
-  
+    createdFormatted: moment(signal.createdAt).format('D MMMM YYYY HH:mm'),
   }));
 
   return {

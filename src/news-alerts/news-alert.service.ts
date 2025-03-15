@@ -8,6 +8,7 @@ import * as AWS from 'aws-sdk';
 import * as sharp from 'sharp';
 import * as fs from 'fs';
 import * as path from 'path';
+import moment from 'moment';
 
 @Injectable()
 export class NewsAlertService {
@@ -106,7 +107,8 @@ export class NewsAlertService {
     const newsAlert = new this.newsAlertModel({
       ...data,
       type: isVideo ? 'video' : 'images',
-      processingStatus: 'pending'
+      processingStatus: 'pending',
+      images: [], // Initialize empty array to bypass validation
     });
 
     // Save the news alert first to get an ID
@@ -125,8 +127,6 @@ export class NewsAlertService {
         
         // Cleanup temp file
         await fs.promises.unlink(files[0].path);
-        
-        return newsAlert;
       } else {
         // Upload images to raw bucket
         const rawUrls = await Promise.all(
@@ -145,9 +145,9 @@ export class NewsAlertService {
         // Update news alert with raw image links
         newsAlert.rawAwsLinkImages = rawUrls;
         await newsAlert.save();
-
-        return newsAlert;
       }
+
+      return newsAlert;
     } catch (error) {
       console.error('Error uploading to raw bucket:', error);
       throw new BadRequestException('Failed to upload media');
@@ -174,6 +174,8 @@ export class NewsAlertService {
 
   async findAllPaginated(page: number, limit: number): Promise<NewsAlert[]> {
     const skip = (page - 1) * limit;
-    return this.newsAlertModel.find({ isLive: true }).sort({ createdAt: -1}).skip(skip).limit(limit).exec();
+    const newsAlerts =await  this.newsAlertModel.find({ isLive: true }).sort({ createdAt: -1}).skip(skip).limit(limit).exec();
+    console.log("newsAlerts",newsAlerts);
+    return newsAlerts;
   }
 }

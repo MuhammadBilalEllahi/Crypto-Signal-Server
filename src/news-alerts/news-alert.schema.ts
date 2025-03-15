@@ -51,6 +51,9 @@ export class NewsAlert {
     }],
     validate: {
       validator: function (this: NewsAlert, images: any[]) {
+        // Skip validation if processing is pending
+        if (this.processingStatus === 'pending') return true;
+        
         if (this.type === 'images') {
           return images && images.length > 0 && images.length <= 7;
         }

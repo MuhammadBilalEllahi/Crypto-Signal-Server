@@ -34,7 +34,7 @@ interface MulterFile {
 }
 
 @Controller('news-alerts')
-@UseGuards(AdminMiddleware)
+// @UseGuards(AdminMiddleware)
 export class NewsAlertController {
   constructor(private readonly newsAlertService: NewsAlertService) {}
 
@@ -93,10 +93,16 @@ export class NewsAlertController {
     return this.newsAlertService.createNewsAlert(files, data);
   }
 
+
   @UseGuards(AdminMiddleware)
   @Patch('admin/:id/toggle-live')
   async toggleLiveStatus(@Param('id') id: string): Promise<NewsAlert> {
     return this.newsAlertService.toggleLiveStatus(id);
+  }
+
+  @Get('all-paginated')
+  async findAllPaginated(@Query('page') page: number = 1, @Query('limit') limit: number = 10): Promise<NewsAlert[]> {
+    return this.newsAlertService.findAllPaginated(page, limit);
   }
 
   @Get()
@@ -118,8 +124,5 @@ export class NewsAlertController {
     }
     return newsAlert;
   }
-  @Get('all-paginated')
-  async findAllPaginated(@Query('page') page: number = 1, @Query('limit') limit: number = 10): Promise<NewsAlert[]> {
-    return this.newsAlertService.findAllPaginated(page, limit);
-  }
+ 
 }
