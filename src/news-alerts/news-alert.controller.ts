@@ -11,6 +11,7 @@ import {
   UseGuards,
   Patch,
   Query,
+  Put,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { NewsAlertService } from './news-alert.service';
@@ -94,11 +95,8 @@ export class NewsAlertController {
   }
 
 
-  @UseGuards(AdminMiddleware)
-  @Patch('admin/:id/toggle-live')
-  async toggleLiveStatus(@Param('id') id: string): Promise<NewsAlert> {
-    return this.newsAlertService.toggleLiveStatus(id);
-  }
+
+
 
   @Get('all-paginated')
   async findAllPaginated(@Query('page') page: number = 1, @Query('limit') limit: number = 10): Promise<NewsAlert[]> {

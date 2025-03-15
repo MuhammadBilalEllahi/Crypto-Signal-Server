@@ -1,9 +1,10 @@
 /* eslint-disable prettier/prettier */
-import { Controller, Post, Get, Body, Req, Param, Query } from '@nestjs/common';
+import { Controller, Post, Get, Body, Req, Param, Query, UseGuards, Patch, Delete, Put } from '@nestjs/common';
 import { SignalService } from './signal.service';
 import { Signal } from './signal.schema';
 import * as moment from 'moment';
 import { Request } from 'express';
+import { AdminMiddleware } from 'src/auth/admin.middleware';
 
 interface AuthenticatedRequest extends Request {
   user: {
@@ -21,6 +22,60 @@ export class SignalController {
     console.log(`Admin ${req.user.email} created a new signal`);
     return this.signalService.create(signal);
   }
+
+  
+
+  @UseGuards(AdminMiddleware)
+  @Get('admin/:id/toggle-live')
+  async toggleLiveStatus(@Param('id') id: string): Promise<Signal> {
+    return this.signalService.toggleLiveStatus(id);
+  }
+
+
+  @UseGuards(AdminMiddleware)
+  @Delete('admin/:signalId')
+  async deleteSignal(@Param('signalId') signalId: string): Promise<Signal> {
+    return this.signalService.deleteSignal(signalId);
+  }
+
+
+
+  @UseGuards(AdminMiddleware)
+  @Get('admin/all')
+    async allSignals(@Body() data: any): Promise<Signal[]> {
+      return this.signalService.allSignals(data);
+    }
+
+    @UseGuards(AdminMiddleware)
+    @Get('admin/deleted')
+    async deletedSignals(): Promise<Signal[]> {
+      return this.signalService.deletedSignals();
+    }
+
+    @UseGuards(AdminMiddleware)
+    @Get('admin/isNotLive')
+    async isNotLiveSignals(): Promise<Signal[]> {
+      return this.signalService.isNotLiveSignals();
+    }
+
+    @UseGuards(AdminMiddleware)
+    @Get('admin/undelete/:signalId')
+    async undeleteSignal(@Param('signalId') signalId: string): Promise<Signal> {
+      return this.signalService.undeleteSignal(signalId);
+    }
+
+    @UseGuards(AdminMiddleware)
+    @Put('admin/update/:signalId')
+    async updateSignal(@Param('signalId') signalId: string, @Body() data: any): Promise<Signal> {
+      return this.signalService.updateSignal(signalId, data);
+    }
+
+    @UseGuards(AdminMiddleware)
+    @Get('admin/single/:signalId')
+    async getSingleSignal(@Param('signalId') signalId: string): Promise<Signal> {
+      return this.signalService.getSingleSignal(signalId);
+    }
+
 
   @Get()
   async findAll() {

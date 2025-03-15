@@ -14,7 +14,7 @@ export class Signal extends Document {
     }
   })
   coin?: string;
-  @Prop({ required: true, uppercase: true }) type: 'GOLD' | 'CRYPTO' | 'STOCK';
+  @Prop({ required: true, uppercase: true }) type: 'GOLD' | 'CRYPTO' | 'STOCKS';
   @Prop({ required: true }) createdBy: string;
   @Prop({ required: true, uppercase: true }) direction: 'LONG' | 'SHORT';
   @Prop({ required: true }) portfolioPercentage: number;
@@ -28,6 +28,7 @@ export class Signal extends Document {
   @Prop({ default: false }) isLive: boolean;
   @Prop({ default: false }) hasTradingAnalysis: boolean;
   @Prop({ default: false }) tradingAnalysis: string;
+  @Prop({ default: false }) isDeleted: boolean;
 }
 
 export const SignalSchema = SchemaFactory.createForClass(Signal);

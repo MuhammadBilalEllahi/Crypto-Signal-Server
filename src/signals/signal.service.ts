@@ -7,6 +7,8 @@ import { Cron } from '@nestjs/schedule';
 import { SignalGateway } from './signal.gateway';
 import * as moment from 'moment';
 import { User, UserDocument } from 'src/user/user.schema';
+import { FilterQuery } from 'mongoose';
+
 
 @Injectable()
 export class SignalService {
@@ -28,12 +30,75 @@ export class SignalService {
     }
   }
 
+  async toggleLiveStatus(id: string): Promise<Signal> {
+    const existingSignal = await this.signalModel.findById(id);
+    if (!existingSignal) {
+      throw new Error('Signal not found');
+    }
+    if(existingSignal.isDeleted){
+      throw new Error('Signal cant be live because it is deleted');
+    }
+      
+    const signal = await this.signalModel.findByIdAndUpdate(
+      id,
+      { isLive: !existingSignal.isLive },
+      { new: true }
+    );
+    return signal as Signal;
+  }
+
+
+  async deleteSignal(signalId: string): Promise<Signal> {
+    const signal = await this.signalModel.findByIdAndUpdate(signalId, { isDeleted: true, isLive:false }, { new: true });
+    return signal as Signal;
+  }
+
+  async deletedSignals(): Promise<Signal[]> {
+    const signals = await this.signalModel.find({ isDeleted: true, isLive:false }).exec();
+    return signals as Signal[];
+  }
+
+  async undeleteSignal(signalId: string): Promise<Signal> {
+    const signal = await this.signalModel.findByIdAndUpdate(signalId, { isDeleted: false, isLive:false }, { new: true });
+    return signal as Signal;
+  }
+  
+  async allSignals(data: any): Promise<Signal[]> {
+    const signals = await this.signalModel.find(data as FilterQuery<Signal>).exec();
+    if (!signals) {
+      throw new Error('Signals not found');
+    }
+    return signals as Signal[] ;
+  }
+
+  async updateSignal(signalId: string, data: any): Promise<Signal> {
+    const signal = await this.signalModel.findByIdAndUpdate(signalId, data, { new: true });
+    return signal as Signal ;
+  } 
+
+  async getSingleSignal(signalId: string): Promise<Signal> {
+    const signal = await this.signalModel.findById(signalId);
+    return signal as Signal;
+  }
+
+  async isNotLiveSignals(): Promise<Signal[]> {
+    const signals = await this.signalModel.find({ isLive: false, isDeleted: false }).exec();
+    return signals as Signal[];
+  }
+
+
+
+
+
+
+
+
   // async findAll(): Promise<Signal[]> {
   //   return this.signalModel.find().exec();
   // }
 
   async findAll() {
-    const signals = await this.signalModel.find({isLive:true}).limit(5).sort({ createdAt: -1 }).lean(); // Sort latest first
+    const signals = await this.signalModel.find({isLive:true, isDeleted:false}).limit(5).sort({ createdAt: -1 }).lean(); // Sort latest first
 
     return signals.map(signal => ({
       ...signal,
@@ -48,7 +113,7 @@ export class SignalService {
     const skip = (page - 1) * pageSize; // Calculate offset
   
     const signals = await this.signalModel
-      .find({expired:false, isLive:true})
+      .find({expired:false, isLive:true, isDeleted:false})
       .sort({ createdAt: -1 }) // Sort latest first
       .skip(skip)
       .limit(pageSize)
@@ -113,7 +178,7 @@ export class SignalService {
     const skip = (page - 1) * pageSize;
   
     // Fetch user's favorite signals
-    const user = await this.userModel.findOne({ uid }).select('favoriteSignals');
+    const user = await this.userModel.findOne({ uid, isDeleted:false }).select('favoriteSignals');
     const favoriteSignalIds = user?.favoriteSignals?.map((signal: any) => signal.toString()) || [];
   
     const [history, total] = await Promise.all([
@@ -178,7 +243,7 @@ async userFavouriteSignals(uid: string, page: number = 1, pageSize: number = 10)
   const skip = (page - 1) * pageSize;
 
   const user = await this.userModel
-    .findOne({ uid })
+    .findOne({ uid, isDeleted:false })
     .populate({
       path: 'favoriteSignals',
       model: 'Signal',  // Ensure it references the correct model
