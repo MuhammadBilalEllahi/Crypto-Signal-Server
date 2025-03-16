@@ -248,7 +248,7 @@ async userFavouriteSignals(uid: string, page: number = 1, pageSize: number = 10)
   const skip = (page - 1) * pageSize;
 
   const user = await this.userModel
-    .findOne({ uid, isDeleted:false })
+    .findOne({ uid})
     .populate({
       path: 'favoriteSignals',
       model: 'Signal',  // Ensure it references the correct model
