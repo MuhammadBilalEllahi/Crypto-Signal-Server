@@ -42,6 +42,9 @@ export class NewsAlert {
     thumbnail: string;
   };
 
+  @Prop({ default: false })
+  isDeleted: boolean;
+
   @Prop({
     type: [{
       original: String,

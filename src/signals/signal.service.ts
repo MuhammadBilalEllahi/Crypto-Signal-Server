@@ -76,6 +76,11 @@ export class SignalService {
     return signal as Signal ;
   } 
 
+  async deleteSignalCompletely(signalId: string): Promise<Signal> {
+    const signal = await this.signalModel.findByIdAndDelete(signalId);
+    return signal as Signal;
+  }
+
   async getSingleSignal(signalId: string): Promise<Signal> {
     const signal = await this.signalModel.findById(signalId);
     return signal as Signal;

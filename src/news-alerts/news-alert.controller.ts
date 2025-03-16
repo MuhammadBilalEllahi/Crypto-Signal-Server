@@ -12,6 +12,8 @@ import {
   Patch,
   Query,
   Put,
+  Req,
+  Delete,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { NewsAlertService } from './news-alert.service';
@@ -21,6 +23,7 @@ import * as path from 'path';
 import { CreateNewsAlertDto } from './interfaces/news-alert.interface';
 import { NewsAlert } from './news-alert.schema';
 import { AdminMiddleware } from 'src/auth/admin.middleware';
+import { User } from 'src/user/user.schema';
 
 interface MulterFile {
   fieldname: string;
@@ -53,8 +56,14 @@ export class NewsAlertController {
         const allowedMimetypes = [
           'video/mp4',
           'video/quicktime',
+          'video/mov',
+          'video/avi',
+          'video/webm',
           'image/jpeg',
+          'image/jpg',
           'image/png',
+          'image/gif',
+          'image/webp',
         ];
         if (!allowedMimetypes.includes(file.mimetype)) {
           cb(
@@ -96,8 +105,72 @@ export class NewsAlertController {
 
 
 
+  @UseGuards(AdminMiddleware)
+  @Get('admin/all/list')
+  async allNewsAlerts(): Promise<NewsAlert[]> {
+    return this.newsAlertService.findAllList();
+  }
+
+  @UseGuards(AdminMiddleware)
+  @Get('admin/my/list')
+  async myNewsAlerts(@Req() req: Request & { user: any }): Promise<NewsAlert[]> {
+    console.log("This is the request",req.user);
+    return this.newsAlertService.findAllListByYou(req);
+  }
+
+ 
 
 
+  @UseGuards(AdminMiddleware)
+  @Get('admin/toggle-isLive/:newsAlertId')
+  async toggleIsLive(@Param('newsAlertId') newsAlertId: string): Promise<NewsAlert> {
+    return this.newsAlertService.toggleIsLive(newsAlertId);
+  }
+
+  @UseGuards(AdminMiddleware)
+  @Delete('admin/delete-partially/:newsAlertId')
+  async deletePartially(@Param('newsAlertId') newsAlertId: string): Promise<string> {
+    return this.newsAlertService.deleteNewsAlertPartially(newsAlertId);
+  }
+
+  
+  @UseGuards(AdminMiddleware)
+  @Delete('admin/permanently-delete/:newsAlertId')
+  async deleteMedia(@Param('newsAlertId') newsAlertId: string): Promise<string> {
+    return this.newsAlertService.deleteNewsAlertCompletely(newsAlertId);
+  }
+
+  @Put('admin/save/:newsAlertId')
+  async saveNewsAlert(@Param('newsAlertId') newsAlertId: string, @Req() req: Request & { user: any }): Promise<User> {
+    return this.newsAlertService.saveNewsAlert(req, newsAlertId);
+  }
+
+  @Put('admin/unsave/:newsAlertId')
+  async unsaveNewsAlert(@Param('newsAlertId') newsAlertId: string, @Req() req: Request & { user: any }): Promise<User> {
+    return this.newsAlertService.unsaveNewsAlert(req, newsAlertId);
+  }
+
+  @UseGuards(AdminMiddleware)
+  @Get('admin/partially-deleted-news-alerts')
+  async getPartiallyDeletedNewsAlerts(): Promise<NewsAlert[]> {
+    return this.newsAlertService.getPartiallyDeletedNewsAlerts();
+  }
+
+  @UseGuards(AdminMiddleware)
+  @Get('admin/my-partially-deleted-news-alerts')
+  async getMyPartiallyDeletedNewsAlerts(@Req() req: Request & { user: any }): Promise<NewsAlert[]> {
+    return this.newsAlertService.getMyPartiallyDeletedNewsAlerts(req);
+  }
+
+  @UseGuards(AdminMiddleware)
+  @Get('admin/recover-partially-deleted-news-alerts/:newsAlertId')
+  async recoverPartiallyDeletedNewsAlerts(@Param('newsAlertId') newsAlertId: string): Promise<NewsAlert> {
+    return this.newsAlertService.recoverPartiallyDeletedNewsAlerts(newsAlertId);
+  }
+
+
+
+  
   @Get('all-paginated')
   async findAllPaginated(@Query('page') page: number = 1, @Query('limit') limit: number = 10): Promise<NewsAlert[]> {
     return this.newsAlertService.findAllPaginated(page, limit);

@@ -11,7 +11,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { AuthMiddleware } from 'src/auth/auth.middleware';
 import { UserModule } from 'src/user/user.module';
-
+import { User, UserSchema } from 'src/user/user.schema';
 interface MulterFile {
   fieldname: string;
   originalname: string;
@@ -36,6 +36,7 @@ if (!fs.existsSync(TEMP_UPLOAD_DIR)) {
     UserModule,
     MongooseModule.forFeature([
       { name: NewsAlert.name, schema: NewsAlertSchema },
+      { name: User.name, schema: UserSchema },
     ]),
     MulterModule.register({
       storage: diskStorage({

@@ -19,8 +19,12 @@ export class User {
   @Prop({ default: [] })
   favoriteSignals: mongoose.Schema.Types.ObjectId[];
 
-  @Prop({ default: [] })
-  savedNewsAlerts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'NewsAlert' }];
+  @Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'NewsAlert' }], default: [] })
+  savedNewsAlerts: { type: mongoose.Schema.Types.ObjectId; ref: 'NewsAlert' }[];
+  
+  
+  // @Prop({ default: [] })
+  // savedSignals: mongoose.Schema.Types.ObjectId[];
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

@@ -76,6 +76,11 @@ export class SignalController {
       return this.signalService.getSingleSignal(signalId);
     }
 
+    @UseGuards(AdminMiddleware)
+    @Delete('admin/delete/hard/:signalId')
+    async deleteSignalCompletely(@Param('signalId') signalId: string): Promise<Signal> {
+      return this.signalService.deleteSignalCompletely(signalId);
+    }
 
   @Get()
   async findAll() {

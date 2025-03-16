@@ -1,7 +1,7 @@
 /* eslint-disable prettier/prettier */
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Document, ObjectId } from 'mongoose';
 import { NewsAlert, NewsAlertDocument } from './news-alert.schema';
 import { ImageFormat, MulterFile, CreateNewsAlertDto } from './interfaces/news-alert.interface';
 import * as AWS from 'aws-sdk';
@@ -9,6 +9,14 @@ import * as sharp from 'sharp';
 import * as fs from 'fs';
 import * as path from 'path';
 import moment from 'moment';
+import { User, UserDocument } from '../user/user.schema';
+
+interface Request {
+  user: {
+    _id: string;
+    email: string;
+  };
+}
 
 @Injectable()
 export class NewsAlertService {
@@ -19,6 +27,8 @@ export class NewsAlertService {
   constructor(
     @InjectModel(NewsAlert.name)
     private newsAlertModel: Model<NewsAlertDocument>,
+    @InjectModel(User.name)
+    private userModel: Model<UserDocument>,
   ) {
     const rawBucket = process.env.AWS_BUCKET_NAME;
     const processedBucket = process.env.AWS_PROCESSED_BUCKET_NAME;
@@ -168,6 +178,21 @@ export class NewsAlertService {
     return this.newsAlertModel.find(filter).sort({ createdAt: -1 }).exec();
   }
 
+  async findAllList(): Promise<NewsAlert[]> {
+    return this.newsAlertModel.find().sort({ createdAt: -1 }).exec();
+  }
+  
+  async findAllListByYou(request: Request): Promise<NewsAlert[]> {
+    console.log("request",request.user, request.user.email);
+    const user = request.user;
+    if (!user?.email) {
+      throw new BadRequestException('User not found');
+    }
+    const newsAlerts = await this.newsAlertModel.find({ createdBy: user.email, isDeleted: false }).sort({ createdAt: -1 }).exec();
+    console.log("newsAlerts",newsAlerts);
+    return newsAlerts;
+  }
+
   async findAllProfileReels(filter: { createdBy: string }): Promise<NewsAlert[]> {
     return this.newsAlertModel.find(filter).sort({ createdAt: -1 }).exec();
   }
@@ -181,5 +206,72 @@ export class NewsAlertService {
     const newsAlerts =await  this.newsAlertModel.find({ isLive: true }).sort({ createdAt: -1}).skip(skip).limit(limit).exec();
     console.log("newsAlerts",newsAlerts);
     return newsAlerts;
+  }
+
+  async toggleIsLive(id: string): Promise<NewsAlert> {
+    const newsAlert = await this.newsAlertModel.findById(id);
+    if (!newsAlert) {
+      throw new BadRequestException('News alert not found');
+    }
+    newsAlert.isLive = !newsAlert.isLive;
+    return newsAlert.save();
+  }
+
+  async getPartiallyDeletedNewsAlerts(): Promise<NewsAlert[]> {
+    return this.newsAlertModel.find({ isDeleted: true }).exec();
+  }
+
+  async getMyPartiallyDeletedNewsAlerts(request: Request): Promise<NewsAlert[]> {
+    const user = request.user;
+    if (!user?.email) {
+      throw new BadRequestException('User not found');
+    }
+    return this.newsAlertModel.find({ createdBy: user.email, isDeleted: true }).exec();
+  }
+
+  async deleteNewsAlertCompletely(id: string): Promise<string> {
+    const newsAlert = await this.newsAlertModel.findByIdAndDelete(id);
+    if(!newsAlert){
+      throw new BadRequestException('News alert not found');
+    }
+    return 'News alert deleted successfully';
+    
+  }
+  
+
+  async deleteNewsAlertPartially(id: string): Promise<string> {
+    const newsAlert = await this.newsAlertModel.findByIdAndUpdate(id, { isLive: false, isDeleted: true });
+    if(!newsAlert){
+      throw new BadRequestException('News alert not found');
+    }
+    return 'News alert deleted successfully';
+  }
+
+  async recoverPartiallyDeletedNewsAlerts(id: string): Promise<NewsAlert> {
+    const newsAlert = await this.newsAlertModel.findByIdAndUpdate(id, { isLive: false, isDeleted: false });
+    if(!newsAlert){
+      throw new BadRequestException('News alert not found');
+    }
+    return newsAlert;
+  }
+
+  async saveNewsAlert(request: Request, newsAlertId: string): Promise<User> {
+    const user = await this.userModel.findById(request.user._id);
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+    user.savedNewsAlerts.push({ type: newsAlertId as unknown as ObjectId, ref: 'NewsAlert' });
+    await user.save();
+    return user;
+  }
+
+  async unsaveNewsAlert(request: Request, newsAlertId: string): Promise<User> {
+    const user = await this.userModel.findById(request.user._id);
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+    user.savedNewsAlerts = user.savedNewsAlerts.filter((alert) => alert.type.toString() !== newsAlertId);
+    await user.save();
+    return user;
   }
 }
