@@ -8,7 +8,7 @@ import { SignalGateway } from './signal.gateway';
 import * as moment from 'moment';
 import { User, UserDocument } from 'src/user/user.schema';
 import { FilterQuery } from 'mongoose';
-
+import { RedisService } from 'src/redis/redis.service';
 
 @Injectable()
 export class SignalService {
@@ -16,6 +16,7 @@ export class SignalService {
     @InjectModel(Signal.name) private signalModel: Model<Signal>,
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     private signalGateway: SignalGateway,
+    private readonly redisService: RedisService,
   ) {}
 
   async create(signal: Signal): Promise<Signal> {
@@ -49,17 +50,21 @@ export class SignalService {
 
 
   async deleteSignal(signalId: string): Promise<Signal> {
-    const signal = await this.signalModel.findByIdAndUpdate(signalId, { isDeleted: true, isLive:false }, { new: true });
+    const signal = await this.signalModel.findByIdAndUpdate(signalId, { isDeleted: true, isLive: false }, { new: true });
+    if (signal) {
+      await this.redisService.removeFromFavourites(signalId);
+      await this.redisService.removeFromHistory(signalId);
+    }
     return signal as Signal;
   }
 
   async deletedSignals(): Promise<Signal[]> {
-    const signals = await this.signalModel.find({ isDeleted: true, isLive:false }).exec();
+    const signals = await this.signalModel.find({ isDeleted: true, isLive: false }).exec();
     return signals as Signal[];
   }
 
   async undeleteSignal(signalId: string): Promise<Signal> {
-    const signal = await this.signalModel.findByIdAndUpdate(signalId, { isDeleted: false, isLive:false }, { new: true });
+    const signal = await this.signalModel.findByIdAndUpdate(signalId, { isDeleted: false, isLive: false }, { new: true });
     return signal as Signal;
   }
   
@@ -68,16 +73,23 @@ export class SignalService {
     if (!signals) {
       throw new Error('Signals not found');
     }
-    return signals as Signal[] ;
+    return signals as Signal[];
   }
 
   async updateSignal(signalId: string, data: any): Promise<Signal> {
     const signal = await this.signalModel.findByIdAndUpdate(signalId, data, { new: true });
-    return signal as Signal ;
+    if (signal) {
+      await this.redisService.updateSignalData(signalId, data);
+    }
+    return signal as Signal;
   } 
 
   async deleteSignalCompletely(signalId: string): Promise<Signal> {
     const signal = await this.signalModel.findByIdAndDelete(signalId);
+    if (signal) {
+      await this.redisService.removeFromFavourites(signalId);
+      await this.redisService.removeFromHistory(signalId);
+    }
     return signal as Signal;
   }
 
@@ -115,20 +127,33 @@ export class SignalService {
 
 
   async findAllPaginated(page: number = 1, pageSize: number = 10) {
-    const skip = (page - 1) * pageSize; // Calculate offset
-  
-    const signals = await this.signalModel
-      .find({expired:false, isLive:true, isDeleted:false})
-      .sort({ createdAt: -1 }) // Sort latest first
-      .skip(skip)
-      .limit(pageSize)
-      .lean();
-  
-    const totalSignals = await this.signalModel.countDocuments(); // Get total count for pagination info
-  
-    console.log("signals",signals);
+    const redisKey = `signals_paginated_all`;
+    let signals: Signal[] = [];
+    
+    // Check if the data is already cached in Redis
+    if (await this.redisService.exists(redisKey)) {
+      const cachedData = await this.redisService.get(redisKey);
+      if (cachedData) {
+        signals = JSON.parse(cachedData as string) as Signal[];
+      }
+    } else {
+      // Fetch from the database if not cached
+      signals = await this.signalModel
+        .find({ expired: false, isLive: true, isDeleted: false })
+        .sort({ createdAt: -1 }) // Sort latest first
+        .lean();
+      
+      // Store the entire dataset in Redis
+      await this.redisService.set(redisKey, JSON.stringify(signals));
+    }
+
+    const totalSignals = signals.length; // Get total count from the cached data
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    const paginatedSignals = signals.slice(startIndex, endIndex);
+
     return {
-      signals: signals.map(signal => ({
+      signals: paginatedSignals.map(signal => ({
         ...signal,
         createdAt: moment(signal.createdAt).fromNow(), // Format to "X days ago"
         createdFormatted: moment(signal.createdAt).format('D MMMM YYYY HH:mm'), // Format to "3 March 2025 22:45"
@@ -149,11 +174,18 @@ export class SignalService {
     const now = new Date();
     try {
       const result = await this.signalModel.updateMany(
-        { expireAt: { $lt: now }, expired: false },
+        { expireAt: { $lt: now }, expired: false, isDeleted: false },
         { expired: true },
       );
       if (result.modifiedCount > 0) {
         console.log(`Updated ${result.modifiedCount} expired signals.`);
+
+        // Fetch all expired signals
+        const expiredSignals = await this.signalModel.find({ expired: true, isLive: true, isDeleted: false }).lean();
+
+        // Update the entire history data in Redis
+        const redisKey = `signal_history`;
+        await this.redisService.set(redisKey, JSON.stringify(expiredSignals));
       }
     } catch (error) {
       console.error('Error updating expired signals:', error);
@@ -181,43 +213,65 @@ export class SignalService {
 
   async findHistory(uid: string, page: number = 1, pageSize: number = 10) {
     const skip = (page - 1) * pageSize;
-  
+    const redisKey = `signal_history`;
+
+    // Check if history data is in Redis
+    let historyData: Signal[] | null = null;
+    const cachedData = await this.redisService.get(redisKey);
+    if (cachedData) {
+      try {
+        historyData = JSON.parse(cachedData as string) as Signal[];
+      } catch (error) {
+        console.error('Error parsing cached history data:', error);
+      }
+    }
+
+    if (!historyData) {
+      // Fetch all history data from the database
+      const allHistory = await this.signalModel.find({ expired: true, isLive: true, isDeleted: false }).lean();
+      
+      // Store the entire history data in Redis
+      await this.redisService.set(redisKey, JSON.stringify(allHistory));
+      historyData = allHistory;
+    }
+
     // Fetch user's favorite signals
-    const user = await this.userModel.findOne({ uid, isDeleted:false }).select('favoriteSignals');
+    const user = await this.userModel.findOne({ uid, isDeleted: false }).select('favoriteSignals');
     const favoriteSignalIds = user?.favoriteSignals?.map((signal: any) => signal.toString()) || [];
-  
-    const [history, total] = await Promise.all([
-      this.signalModel.find({ expired: true, isLive:true }).skip(skip).limit(pageSize).lean(),
-      this.signalModel.countDocuments({ expired: true, isLive:true }),
-    ]);
-  
+
+    // Apply pagination on the history data from Redis
+    const paginatedHistory = historyData.slice(skip, skip + pageSize);
+
     // Add `isFavorite` flag to each signal
-    const historyWithFavorites = history.map((signal: any) => ({
+    const historyWithFavorites = paginatedHistory.map((signal: any) => ({
       ...signal,
-      createdAt: moment(signal.createdAt).fromNow(), //  Format to "X days ago"
-      expireAt: moment(signal.expireAt).format('D MMMM YYYY HH:mm'), //  Format to "3 March 2025 22:45"
+      createdAt: moment(signal.createdAt).fromNow(), // Format to "X days ago"
+      expireAt: moment(signal.expireAt).format('D MMMM YYYY HH:mm'), // Format to "3 March 2025 22:45"
       createdFormatted: moment(signal.createdAt).format('D MMMM YYYY HH:mm'),
       isFavorite: favoriteSignalIds.includes(signal._id.toString()), // Check if it's in favorites
     }));
 
-  
-  
     return {
-      total,
+      total: historyData.length,
       page,
       pageSize,
       history: historyWithFavorites, // Return signals with `isFavorite`
-      hasMore: skip + pageSize < total,
+      hasMore: skip + pageSize < historyData.length,
     };
   }
   
 
- async toggleFavouriteSignal(uid: string, signalId: string) {
+async toggleFavouriteSignal(uid: string, signalId: string) {
+
   const user = await this.userModel.findOne({ uid });
 
   if (!user) {
     throw new Error("User not found");
   }
+
+  const redisKey = `user_favourite_signals_${uid}`;
+  const redisValue = await this.redisService.get(redisKey);
+  console.log("redisValue", redisValue);
 
   if (!user.favoriteSignals) {
     user.favoriteSignals = []; // Ensure it's initialized
@@ -235,49 +289,86 @@ export class SignalService {
     return new Types.ObjectId(favSignal._id).equals(signalObjectId);
   });
 
-  return await this.userModel.findOneAndUpdate(
+  const updateResult = await this.userModel.findOneAndUpdate(
     { uid },
     isFavourite
       ? { $pull: { favoriteSignals: signalObjectId } } // Remove if exists
       : { $push: { favoriteSignals: signalObjectId } }, // Add if not exists
     { new: true }
   );
+
+  // Update Redis cache
+  if (redisValue) {
+    const favorites = JSON.parse(redisValue as string);
+    if (isFavourite) {
+      // Remove the signal from Redis cache
+      const updatedFavorites = favorites.filter((fav: any) => fav._id.toString() !== signalId);
+      await this.redisService.set(redisKey, JSON.stringify(updatedFavorites));
+    } else {
+      // Add the signal to Redis cache
+      const newSignal = await this.signalModel.findById(signalObjectId).lean();
+      if (newSignal) {
+        favorites.push({ ...newSignal, isFavorite: true });
+        await this.redisService.set(redisKey, JSON.stringify(favorites));
+      }
+    }
+  }
+
+  return updateResult;
 }
 
 async userFavouriteSignals(uid: string, page: number = 1, pageSize: number = 10) {
-  const skip = (page - 1) * pageSize;
+  console.log("Checking user favourite signals in Redis", `user_favourite_signals_${uid}`);
+  
+  // Check if all favorite signals are cached in Redis
+  if (!await this.redisService.exists(`user_favourite_signals_${uid}`)) {
+    console.log("Fetching user favourite signals from database");
+    
+    // Fetch all favorite signals from the database
+    const user = await this.userModel
+      .findOne({ uid })
+      .populate({
+        path: 'favoriteSignals',
+        model: 'Signal',
+        select: '-__v',
+      });
 
-  const user = await this.userModel
-    .findOne({ uid})
-    .populate({
-      path: 'favoriteSignals',
-      model: 'Signal',  // Ensure it references the correct model
-      select: '-__v',  // Exclude unnecessary fields if needed
-      options: { skip, limit: pageSize },
-    });
+    if (!user || !user.favoriteSignals) {
+      return { total: 0, page, pageSize, favorites: [], hasMore: false };
+    }
 
-    console.log("user Favourite Signals",user);
-  if (!user || !user.favoriteSignals) {
-    return { total: 0, page, pageSize, favorites: [], hasMore: false };
+    const favoritesWithFlag = user.favoriteSignals.map((signal: any) => ({
+      ...signal.toObject(),
+      isFavorite: true,
+      createdAt: moment(signal.createdAt).fromNow(),
+      expireAt: moment(signal.expireAt).format('D MMMM YYYY HH:mm'),
+      createdFormatted: moment(signal.createdAt).format('D MMMM YYYY HH:mm'),
+    }));
+
+    // Store all favorite signals in Redis
+    await this.redisService.set(`user_favourite_signals_${uid}`, JSON.stringify(favoritesWithFlag));
   }
 
-  const total = await this.signalModel.countDocuments({ _id: { $in: user.favoriteSignals } });
+  // Retrieve all favorite signals from Redis
+  const userFavouriteSignals = await this.redisService.get(`user_favourite_signals_${uid}`);
+  const allFavorites = JSON.parse(userFavouriteSignals as string) as Signal[];
 
-  const favoritesWithFlag = user.favoriteSignals.map((signal: any) => ({
-    ...signal.toObject(), // Ensure it's a plain object
-    isFavorite: true,
-    createdAt: moment(signal.createdAt).fromNow(), //  Format to "X days ago"
-    expireAt: moment(signal.expireAt).format('D MMMM YYYY HH:mm'), //  Format to "3 March 2025 22:45"
-    createdFormatted: moment(signal.createdAt).format('D MMMM YYYY HH:mm'),
-  }));
+  const total = allFavorites.length;
+  const skip = (page - 1) * pageSize;
+  const paginatedFavorites = allFavorites.slice(skip, skip + pageSize);
 
   return {
     total,
     page,
     pageSize,
-    favorites:favoritesWithFlag ,  // Now populated with actual data
+    favorites: paginatedFavorites,
     hasMore: skip + pageSize < total,
   };
+}
+
+async getFilters(type: string) {
+  const filters = await this.signalModel.distinct(type);
+  return filters;
 }
 
 

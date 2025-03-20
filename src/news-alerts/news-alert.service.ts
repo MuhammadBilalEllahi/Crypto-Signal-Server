@@ -10,6 +10,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import moment from 'moment';
 import { User, UserDocument } from '../user/user.schema';
+import { RedisService } from 'src/redis/redis.service';
 
 interface Request {
   user: {
@@ -17,6 +18,9 @@ interface Request {
     email: string;
   };
 }
+  interface NewsAlertWithId extends NewsAlert {
+    _id: string;
+  }
 
 @Injectable()
 export class NewsAlertService {
@@ -29,6 +33,7 @@ export class NewsAlertService {
     private newsAlertModel: Model<NewsAlertDocument>,
     @InjectModel(User.name)
     private userModel: Model<UserDocument>,
+    private readonly redisService: RedisService,
   ) {
     const rawBucket = process.env.AWS_BUCKET_NAME;
     const processedBucket = process.env.AWS_PROCESSED_BUCKET_NAME;
@@ -164,57 +169,110 @@ export class NewsAlertService {
     }
   }
 
-  async toggleLiveStatus(id: string): Promise<NewsAlert> {
-    const newsAlert = await this.newsAlertModel.findById(id);
-    if (!newsAlert) {
-      throw new BadRequestException('News alert not found');
-    }
-
-    newsAlert.isLive = !newsAlert.isLive;
-    return newsAlert.save();
-  }
-
   async findAll(filter: { isLive?: boolean } = {}): Promise<NewsAlert[]> {
-    return this.newsAlertModel.find(filter).sort({ createdAt: -1 }).exec();
+    
+    if(await this.redisService.exists('news_alerts')){
+      const newsAlerts = await this.redisService.get('news_alerts');
+      return newsAlerts as NewsAlert[];
+    }
+    const newsAlerts = await this.newsAlertModel.find(filter).sort({ createdAt: -1 }).exec();
+    await this.redisService.set('news_alerts', newsAlerts);
+
+    await    this.redisService.set('news_alerts', newsAlerts);
+    return newsAlerts as NewsAlert[];
   }
 
   async findAllList(): Promise<NewsAlert[]> {
-    return this.newsAlertModel.find().sort({ createdAt: -1 }).exec();
+    if(await this.redisService.exists('news_alerts_list')){
+      const newsAlerts = await this.redisService.get('news_alerts_list');
+      return newsAlerts as NewsAlert[];
+    }
+    const newsAlerts = await this.newsAlertModel.find().sort({ createdAt: -1 }).exec();
+    await this.redisService.set('news_alerts_list', newsAlerts);
+    return newsAlerts as NewsAlert[];
   }
   
   async findAllListByYou(request: Request): Promise<NewsAlert[]> {
+    if(await this.redisService.exists('news_alerts_list_by_you')){
+      const newsAlerts = await this.redisService.get('news_alerts_list_by_you');
+      return newsAlerts as NewsAlert[];
+    }
     console.log("request",request.user, request.user.email);
     const user = request.user;
     if (!user?.email) {
       throw new BadRequestException('User not found');
     }
     const newsAlerts = await this.newsAlertModel.find({ createdBy: user.email, isDeleted: false }).sort({ createdAt: -1 }).exec();
-    console.log("newsAlerts",newsAlerts);
-    return newsAlerts;
+    await this.redisService.set('news_alerts_list_by_you', newsAlerts);
+    return newsAlerts as NewsAlert[];
   }
 
   async findAllProfileReels(filter: { createdBy: string }): Promise<NewsAlert[]> {
-    return this.newsAlertModel.find(filter).sort({ createdAt: -1 }).exec();
+    if(await this.redisService.exists('news_alerts_profile_reels')){
+      const newsAlerts = await this.redisService.get('news_alerts_profile_reels');
+        return newsAlerts as NewsAlert[];
+    }
+    const newsAlerts = await this.newsAlertModel.find(filter).sort({ createdAt: -1 }).exec();
+    await this.redisService.set('news_alerts_profile_reels', newsAlerts);
+    return newsAlerts as NewsAlert[];
   }
 
   async findById(id: string): Promise<NewsAlert | null> {
-    return this.newsAlertModel.findById(id).exec();
+    if(await this.redisService.exists('news_alerts_by_id')){
+      const newsAlert = await this.redisService.get('news_alerts_by_id');
+        return newsAlert as NewsAlert;
+    }
+    const newsAlert = await this.newsAlertModel.findById(id).exec();
+    await this.redisService.set('news_alerts_by_id', newsAlert);
+    return newsAlert as NewsAlert;
   }
 
   async findAllPaginated(page: number, limit: number): Promise<NewsAlert[]> {
-    const skip = (page - 1) * limit;
-    const newsAlerts =await  this.newsAlertModel.find({ isLive: true }).sort({ createdAt: -1}).skip(skip).limit(limit).exec();
-    console.log("newsAlerts",newsAlerts);
-    return newsAlerts;
+    const cacheKey = 'news_alerts_paginated';
+    let newsAlerts: NewsAlert[] = [];
+
+    if (await this.redisService.exists(cacheKey)) {
+      const cachedData = await this.redisService.get(cacheKey);
+      if (cachedData) {
+        newsAlerts = JSON.parse(cachedData as string) as NewsAlert[];
+      }
+    } else {
+      newsAlerts = await this.newsAlertModel.find({ isLive: true }).sort({ createdAt: -1 }).exec();
+      await this.redisService.set(cacheKey, JSON.stringify(newsAlerts));
+    }
+
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit; 
+    const paginatedNewsAlerts = newsAlerts.slice(startIndex, endIndex);
+
+    return paginatedNewsAlerts;
   }
 
-  async toggleIsLive(id: string): Promise<NewsAlert> {
+
+
+  async toggleIsLive(id: string): Promise<NewsAlertWithId> {
+    const cacheKey = 'news_alerts_paginated';
+
+    if (await this.redisService.exists(cacheKey)) {
+      const cachedData = await this.redisService.get(cacheKey);
+      if (cachedData) {
+        const newsAlerts = JSON.parse(cachedData as string) as NewsAlertWithId[];
+        const newsAlert = newsAlerts.find(alert => alert._id === id); // Use '_id' instead of 'id'
+        if (newsAlert) {
+          newsAlert.isLive = !newsAlert.isLive;
+          await this.redisService.set(cacheKey, JSON.stringify(newsAlerts));
+          return newsAlert;
+        }
+      }
+    }
+
     const newsAlert = await this.newsAlertModel.findById(id);
     if (!newsAlert) {
       throw new BadRequestException('News alert not found');
     }
     newsAlert.isLive = !newsAlert.isLive;
-    return newsAlert.save();
+    await newsAlert.save();
+    return newsAlert as NewsAlertWithId;
   }
 
   async getPartiallyDeletedNewsAlerts(): Promise<NewsAlert[]> {

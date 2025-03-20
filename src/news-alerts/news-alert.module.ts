@@ -12,6 +12,8 @@ import * as fs from 'fs';
 import { AuthMiddleware } from 'src/auth/auth.middleware';
 import { UserModule } from 'src/user/user.module';
 import { User, UserSchema } from 'src/user/user.schema';
+import { RedisModule } from 'src/redis/redis.module';
+
 interface MulterFile {
   fieldname: string;
   originalname: string;
@@ -47,6 +49,7 @@ if (!fs.existsSync(TEMP_UPLOAD_DIR)) {
         },
       }),
     }),
+    RedisModule,
   ],
   controllers: [NewsAlertController],
   providers: [NewsAlertService],

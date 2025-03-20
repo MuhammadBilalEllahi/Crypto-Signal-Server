@@ -130,4 +130,9 @@ export class SignalController {
     console.log(`User ${req.user.uid} asked for favorited signal list`);
     return await this.signalService.userFavouriteSignals(req.user.uid)
   }
+
+  @Get('filters/:type')
+  async getFilters(@Param('type') type: string) {
+    return await this.signalService.getFilters(type)
+  }
 }
