@@ -24,7 +24,7 @@ import { CreateNewsAlertDto } from './interfaces/news-alert.interface';
 import { NewsAlert } from './news-alert.schema';
 import { AdminMiddleware } from 'src/auth/admin.middleware';
 import { User } from 'src/user/user.schema';
-
+import { RedisService } from 'src/redis/redis.service';
 interface MulterFile {
   fieldname: string;
   originalname: string;
@@ -36,11 +36,13 @@ interface MulterFile {
   path: string;
   buffer: Buffer;
 }
-
+interface CreateNewsAlertDtoWithId extends CreateNewsAlertDto {
+    id: string;
+}
 @Controller('news-alerts')
 // @UseGuards(AdminMiddleware)
 export class NewsAlertController {
-  constructor(private readonly newsAlertService: NewsAlertService) {}
+  constructor(private readonly newsAlertService: NewsAlertService, private readonly redisService: RedisService) {}
 
   @Post('admin/upload')
   @UseInterceptors(
@@ -68,7 +70,7 @@ export class NewsAlertController {
         if (!allowedMimetypes.includes(file.mimetype)) {
           cb(
             new BadRequestException(
-              'Only .mp4, .mov, .jpg, and .png files are allowed',
+              'Only .mp4, .mov, .avi, .webm, .jpg, .png, .gif, .webp files are allowed',
             ),
             false,
           );
@@ -83,10 +85,20 @@ export class NewsAlertController {
   )
   async uploadNewsAlert(
     @UploadedFiles() files: MulterFile[],
-    @Body() data: CreateNewsAlertDto,
+    @Body() data: CreateNewsAlertDtoWithId,
   ): Promise<NewsAlert> {
     if (!files || files.length === 0) {
       throw new BadRequestException('No files uploaded');
+    }
+    console.log("This is the files",files);
+    if(files[0].mimetype.startsWith('video') && !files[0].originalname.endsWith('.mp4')){
+      throw new BadRequestException('[ERROR] File Mimetype Changed/Corupted during upload');
+    }
+
+    if(files[0].mimetype.startsWith('video/')){
+      if(files.length > 1){
+        throw new BadRequestException('Only one video file is allowed');
+      }
     }
 
     const isVideo = files[0].mimetype.startsWith('video/');
@@ -100,6 +112,9 @@ export class NewsAlertController {
       throw new BadRequestException('Maximum 7 images are allowed');
     }
 
+    await this.redisService.del('news_alerts_list_by_you');
+    await this.redisService.del(`news_alerts_by_id_${data.id}`);
+    await this.redisService.del('news_alerts_profile_reels');
     return this.newsAlertService.createNewsAlert(files, data);
   }
 

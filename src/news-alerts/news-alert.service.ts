@@ -218,12 +218,12 @@ export class NewsAlertService {
   }
 
   async findById(id: string): Promise<NewsAlert | null> {
-    if(await this.redisService.exists('news_alerts_by_id')){
-      const newsAlert = await this.redisService.get('news_alerts_by_id');
+    if(await this.redisService.exists(`news_alerts_by_id_${id}`)){
+      const newsAlert = await this.redisService.get(`news_alerts_by_id_${id}`);
         return newsAlert as NewsAlert;
     }
     const newsAlert = await this.newsAlertModel.findById(id).exec();
-    await this.redisService.set('news_alerts_by_id', newsAlert);
+    await this.redisService.set(`news_alerts_by_id_${id}`, newsAlert);
     return newsAlert as NewsAlert;
   }
 
