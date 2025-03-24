@@ -9,7 +9,6 @@ import {
   UploadedFiles,
   BadRequestException,
   UseGuards,
-  Patch,
   Query,
   Put,
   Req,

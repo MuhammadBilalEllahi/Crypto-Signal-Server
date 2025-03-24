@@ -126,7 +126,7 @@ export class SignalService {
   }
 
 
-  async findAllPaginated(page: number = 1, pageSize: number = 10) {
+  async findAllPaginated(page: number = 1, pageSize: number = 10, uid: string) {
     const redisKey = `signals_paginated_all`;
     let signals: Signal[] = [];
     
@@ -152,12 +152,16 @@ export class SignalService {
     const endIndex = startIndex + pageSize;
     const paginatedSignals = signals.slice(startIndex, endIndex);
 
+    const favoriteSignalIds = await this.redisService.get(`user_favourite_signals_${uid}`) as string;
+    console.log("favoriteSignalIds", favoriteSignalIds);
+
     return {
       signals: paginatedSignals.map(signal => ({
         ...signal,
         createdAt: moment(signal.createdAt).fromNow(), // Format to "X days ago"
         createdFormatted: moment(signal.createdAt).format('D MMMM YYYY HH:mm'), // Format to "3 March 2025 22:45"
         expireAt: moment(signal.expireAt).format('D MMMM YYYY HH:mm'), // Format to "3 March 2025 22:45"
+        isFavorite: favoriteSignalIds.includes(signal._id as string), // Check if it's in favorites
       })),
       pagination: {
         currentPage: page,
@@ -236,8 +240,10 @@ export class SignalService {
     }
 
     // Fetch user's favorite signals
-    const user = await this.userModel.findOne({ uid, isDeleted: false }).select('favoriteSignals');
-    const favoriteSignalIds = user?.favoriteSignals?.map((signal: any) => signal.toString()) || [];
+    // const user = await this.userModel.findOne({ uid, isDeleted: false }).select('favoriteSignals');
+    const favoriteSignalIds = await this.redisService.get(`user_favourite_signals_${uid}`) as string;
+    console.log("favoriteSignalIds", favoriteSignalIds);
+    
 
     // Apply pagination on the history data from Redis
     const paginatedHistory = historyData.slice(skip, skip + pageSize);
@@ -308,7 +314,14 @@ async toggleFavouriteSignal(uid: string, signalId: string) {
       // Add the signal to Redis cache
       const newSignal = await this.signalModel.findById(signalObjectId).lean();
       if (newSignal) {
-        favorites.push({ ...newSignal, isFavorite: true });
+        const newSignalWithCreatedFormated = {
+          ...newSignal,
+          createdAt: moment(newSignal.createdAt).fromNow(),
+          createdFormatted: moment(newSignal.createdAt).format('D MMMM YYYY HH:mm'),
+          expireAt: moment(newSignal.expireAt).format('D MMMM YYYY HH:mm'),
+        }
+
+        favorites.push({ ...newSignalWithCreatedFormated, isFavorite: true });
         await this.redisService.set(redisKey, JSON.stringify(favorites));
       }
     }

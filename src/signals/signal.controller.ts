@@ -96,12 +96,13 @@ export class SignalController {
   @Get('/paginated')
   async findAllPaginated(
     @Query('pageId') pageId: string,
-    @Query('pageSize') pageSize: string
+    @Query('pageSize') pageSize: string,
+    @Req() req: AuthenticatedRequest
   ) {
     const page = parseInt(pageId) || 1;
     const size = parseInt(pageSize) || 10;
 
-    return this.signalService.findAllPaginated(page, size);
+    return this.signalService.findAllPaginated(page, size, req.user.uid);
   }
 
   @Get('history')
