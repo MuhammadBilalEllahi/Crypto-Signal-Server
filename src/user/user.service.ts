@@ -71,6 +71,57 @@ export class UserService {
     throw new Error(`Error setting user role: ${error.message}`);
   }
 }
+
+  // Update user's 2FA secret
+  async update2FASecret(userId: string, secret: string): Promise<User> {
+    return this.userModel.findOneAndUpdate(
+      { uid: userId },
+      { 
+        twoFactorSecret: secret,
+        twoFactorEnabled: true,
+      },
+      { new: true }
+    ).exec();
+  }
+
+  // Disable 2FA
+  async disable2FA(userId: string): Promise<User> {
+    return this.userModel.findOneAndUpdate(
+      { uid: userId },
+      { 
+        twoFactorSecret: null,
+        twoFactorEnabled: false,
+      },
+      { new: true }
+    ).exec();
+  }
+
+  // Update phone verification status
+  async updatePhoneVerification(userId: string, verified: boolean): Promise<User> {
+    return this.userModel.findOneAndUpdate(
+      { uid: userId },
+      { phoneVerified: verified },
+      { new: true }
+    ).exec();
+  }
+
+  // Update email verification status
+  async updateEmailVerification(userId: string, verified: boolean): Promise<User> {
+    return this.userModel.findOneAndUpdate(
+      { uid: userId },
+      { emailVerified: verified },
+      { new: true }
+    ).exec();
+  }
+
+  // Update phone number
+  async updatePhoneNumber(userId: string, phoneNumber: string): Promise<User> {
+    return this.userModel.findOneAndUpdate(
+      { uid: userId },
+      { phoneNumber },
+      { new: true }
+    ).exec();
+  }
 }
 
 

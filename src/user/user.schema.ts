@@ -13,8 +13,23 @@ export class User {
   @Prop({ required: true })
   email: string;
 
-  @Prop({ required: true, enum: ['admin', 'user'], default: 'user' })
+  @Prop({ default: 'user' })
   role: string;
+
+  @Prop()
+  phoneNumber?: string;
+
+  @Prop()
+  twoFactorEnabled?: boolean;
+
+  @Prop()
+  twoFactorSecret?: string;
+
+  @Prop({ default: false })
+  emailVerified: boolean;
+
+  @Prop({ default: false })
+  phoneVerified: boolean;
 
   @Prop({ default: [] })
   favoriteSignals: mongoose.Schema.Types.ObjectId[];
