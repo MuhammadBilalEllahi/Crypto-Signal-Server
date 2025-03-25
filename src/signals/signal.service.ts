@@ -161,7 +161,7 @@ export class SignalService {
         createdAt: moment(signal.createdAt).fromNow(), // Format to "X days ago"
         createdFormatted: moment(signal.createdAt).format('D MMMM YYYY HH:mm'), // Format to "3 March 2025 22:45"
         expireAt: moment(signal.expireAt).format('D MMMM YYYY HH:mm'), // Format to "3 March 2025 22:45"
-        isFavorite: favoriteSignalIds.includes(signal._id as string), // Check if it's in favorites
+        isFavorite: favoriteSignalIds ? favoriteSignalIds.includes(signal._id as string) : false, // Check if it's in favorites
       })),
       pagination: {
         currentPage: page,
@@ -254,7 +254,7 @@ export class SignalService {
       createdAt: moment(signal.createdAt).fromNow(), // Format to "X days ago"
       expireAt: moment(signal.expireAt).format('D MMMM YYYY HH:mm'), // Format to "3 March 2025 22:45"
       createdFormatted: moment(signal.createdAt).format('D MMMM YYYY HH:mm'),
-      isFavorite: favoriteSignalIds.includes(signal._id.toString()), // Check if it's in favorites
+      isFavorite: favoriteSignalIds ? favoriteSignalIds.includes(signal._id.toString()) : false, // Check if it's in favorites
     }));
 
     return {
