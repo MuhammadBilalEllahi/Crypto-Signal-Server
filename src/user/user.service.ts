@@ -1,6 +1,4 @@
 /* eslint-disable prettier/prettier */
-
-/* eslint-disable prettier/prettier */
 import { Get, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -46,6 +44,14 @@ export class UserService {
     return newUser.save();
   }
 
+  // Get user by UID
+  async getUserByUid(uid: string): Promise<User | null> {
+    console.log('HERE IAM GETTING USER BY UID', uid);
+    const user = await this.userModel.findOne({uid: uid }).exec();
+    console.log('USER', user);
+    return user;
+  }
+
   // Update user details
   async updateUser(uid: string, updateData: Partial<User>): Promise<User | null> {
     return this.userModel.findOneAndUpdate({ uid }, updateData, { new: true }).exec();
@@ -72,16 +78,29 @@ export class UserService {
   }
 }
 
+
+  
+
   // Update user's 2FA secret
-  async update2FASecret(userId: string, secret: string): Promise<User> {
+  async update2FASecret(firebaseUid: string, secret: string): Promise<User> {
+    console.log('HERE IAM UPDATING 2FA SECRET', firebaseUid, secret);
     return this.userModel.findOneAndUpdate(
-      { uid: userId },
-      { 
+      { uid: firebaseUid },
+      {
         twoFactorSecret: secret,
-        twoFactorEnabled: true,
+        generated2FA: true,
+        twoFactorEnabled: false,
       },
       { new: true }
-    ).exec();
+    ).exec() as Promise<User>;
+  }
+
+  async update2FAVerifiedAndEnabled(userId: string, verified: boolean): Promise<User> {
+    return this.userModel.findOneAndUpdate(
+      { uid: userId },
+      { twoFactorVerified: verified, twoFactorEnabled: verified, generated2FA: true },
+      { new: true }
+    ).exec() as Promise<User>;
   }
 
   // Disable 2FA
@@ -91,9 +110,10 @@ export class UserService {
       { 
         twoFactorSecret: null,
         twoFactorEnabled: false,
+        generated2FA: false,
       },
       { new: true }
-    ).exec();
+    ).exec() as Promise<User>;
   }
 
   // Update phone verification status
@@ -102,7 +122,7 @@ export class UserService {
       { uid: userId },
       { phoneVerified: verified },
       { new: true }
-    ).exec();
+    ).exec() as Promise<User>;
   }
 
   // Update email verification status
@@ -111,7 +131,7 @@ export class UserService {
       { uid: userId },
       { emailVerified: verified },
       { new: true }
-    ).exec();
+    ).exec() as Promise<User>;
   }
 
   // Update phone number
@@ -120,8 +140,10 @@ export class UserService {
       { uid: userId },
       { phoneNumber },
       { new: true }
-    ).exec();
+    ).exec() as Promise<User>;
   }
+
+ 
 }
 
 

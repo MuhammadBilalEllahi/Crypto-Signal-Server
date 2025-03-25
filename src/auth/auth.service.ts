@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UserService } from '../user/user.service';
@@ -23,7 +22,7 @@ export class AuthService {
 
       await this.userService.createUser({
         uid: userRecord.uid,
-        email: userRecord.email,
+        email: userRecord.email as string,
         role: 'user',
       });
 
@@ -53,13 +52,13 @@ export class AuthService {
   }
 
   // Verify Phone Number
-  async verifyPhoneNumber(phoneNumber: string) {
-    try {
-      return await admin.auth().generatePhoneVerificationCode(phoneNumber);
-    } catch (error) {
-      throw new UnauthorizedException(error.message);
-    }
-  }
+  // async verifyPhoneNumber(phoneNumber: string) {
+  //   try {
+  //     return await admin.auth()(phoneNumber);
+  //   } catch (error) {
+  //     throw new UnauthorizedException(error.message);
+  //   }
+  // }
 
   // Password Reset
   async sendPasswordResetEmail(email: string) {
@@ -80,36 +79,85 @@ export class AuthService {
   }
 
   // 2FA
-  async enable2FA(userId: string) {
+  async enable2FA(firebaseUid: string) {
+    const user = await this.userService.getUserByUid(firebaseUid);
+    console.log('2FA already enabled', user);
+    if (user?.twoFactorVerified && user?.twoFactorEnabled) {
+      return {
+        alreadyEnabled: true,
+        message: '2FA already enabled',
+      };
+    }
     const secret = speakeasy.generateSecret({
       name: 'TradingApp',
     });
+    console.log('SECRET', secret);
 
-    await this.userService.update2FASecret(userId, secret.base32);
+    const user = await this.userService.update2FASecret(
+      firebaseUid,
+      secret.base32,
+    );
 
+    console.log('SECRET', secret, 'firebaseUid', firebaseUid, 'user', user);
     return {
       secret: secret.base32,
       otpauth_url: secret.otpauth_url,
     };
   }
 
-  async verify2FA(userId: string, token: string) {
-    const user = await this.userService.getUserById(userId);
+  async verifyForConnectFirstTime2FA(userId: string, code: string) {
+    console.log('HERE IAM VERIFYING', userId, code);
+    const user = await this.userService.getUserByUid(userId);
     if (!user || !user.twoFactorSecret) {
       throw new UnauthorizedException('2FA not enabled');
     }
-
+    console.log('user', user, 'data', user.twoFactorSecret, 'code', code);
     const verified = speakeasy.totp.verify({
       secret: user.twoFactorSecret,
       encoding: 'base32',
-      token,
+      token: code,
+      window: 1,
     });
+
+    const expectedCode = speakeasy.totp({
+      secret: user.twoFactorSecret,
+      encoding: 'base32',
+    });
+
+    console.log('Expected Code:', expectedCode);
+    console.log('Received Code:', code);
+
+    console.log('verified', verified);
 
     if (!verified) {
       throw new UnauthorizedException('Invalid 2FA token');
     }
 
-    return true;
+    await this.userService.update2FAVerifiedAndEnabled(userId, true);
+    return {
+      message: '2FA verified and enabled',
+      success: true,
+    };
+  }
+
+  async verifyForLogin2FA(userId: string, code: string) {
+    console.log('HERE IAM VERIFYING', userId, code);
+    const user = await this.userService.getUserByUid(userId);
+    if (!user || !user.twoFactorSecret) {
+      throw new UnauthorizedException('2FA not enabled');
+    }
+    const verified = speakeasy.totp.verify({
+      secret: user.twoFactorSecret,
+      encoding: 'base32',
+      token: code,
+    });
+    if (!verified) {
+      throw new UnauthorizedException('Invalid 2FA token');
+    }
+    return {
+      success: true,
+      message: '2FA verified',
+    };
   }
 
   // Generate JWT token

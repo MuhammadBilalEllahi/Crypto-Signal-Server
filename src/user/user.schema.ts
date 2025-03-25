@@ -19,11 +19,7 @@ export class User {
   @Prop()
   phoneNumber?: string;
 
-  @Prop()
-  twoFactorEnabled?: boolean;
-
-  @Prop()
-  twoFactorSecret?: string;
+ 
 
   @Prop({ default: false })
   emailVerified: boolean;
@@ -31,13 +27,28 @@ export class User {
   @Prop({ default: false })
   phoneVerified: boolean;
 
+  @Prop({ default: false })
+  twoFactorVerified: boolean;
+
+  @Prop({ default: false })
+  twoFactorEnabled: boolean;
+
+  @Prop()
+  twoFactorSecret?: string;
+
+  @Prop({ default: false })
+  generated2FA: boolean;
+
+
+  
+
+
   @Prop({ default: [] })
   favoriteSignals: mongoose.Schema.Types.ObjectId[];
 
   @Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'NewsAlert' }], default: [] })
   savedNewsAlerts: { type: mongoose.Schema.Types.ObjectId; ref: 'NewsAlert' }[];
-  
-  
+
   // @Prop({ default: [] })
   // savedSignals: mongoose.Schema.Types.ObjectId[];
 }

@@ -1,5 +1,5 @@
 /* eslint-disable prettier/prettier */
-import { Controller, Post, Get, Body, Req, Param, Query, UseGuards, Patch, Delete, Put } from '@nestjs/common';
+import { Controller, Post, Get, Body, Req, Param, Query, UseGuards,  Delete, Put } from '@nestjs/common';
 import { SignalService } from './signal.service';
 import { Signal } from './signal.schema';
 import * as moment from 'moment';
