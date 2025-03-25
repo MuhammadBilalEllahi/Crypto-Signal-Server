@@ -80,9 +80,9 @@ export class AuthService {
 
   // 2FA
   async enable2FA(firebaseUid: string) {
-    const user = await this.userService.getUserByUid(firebaseUid);
-    console.log('2FA already enabled', user);
-    if (user?.twoFactorVerified && user?.twoFactorEnabled) {
+    const userToCheck = await this.userService.getUserByUid(firebaseUid);
+    console.log('2FA already enabled', userToCheck);
+    if (userToCheck?.twoFactorVerified && userToCheck?.twoFactorEnabled) {
       return {
         alreadyEnabled: true,
         message: '2FA already enabled',
