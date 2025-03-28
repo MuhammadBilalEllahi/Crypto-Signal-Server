@@ -1,13 +1,18 @@
 /* eslint-disable prettier/prettier */
-import { Injectable } from "@nestjs/common";
+import { Injectable, Inject, forwardRef } from "@nestjs/common";
 import { Model } from "mongoose";
 import { UserSubscribe } from "./userSubscribes.schema";
 import { Subscription } from "../subscription/subscription.schema";
-
+import { StripeService } from "../stripe/stripe.service";
 
 @Injectable()
 export class UserSubscribesService {
-    constructor(private readonly userSubscribeModel: Model<UserSubscribe>, private readonly subscriptionModel: Model<Subscription>  ) {}
+    constructor(
+        private readonly userSubscribeModel: Model<UserSubscribe>,
+        private readonly subscriptionModel: Model<Subscription>,
+        @Inject(forwardRef(() => StripeService))
+        private readonly stripeService: StripeService,
+    ) {}
 
     async findAll() {
         return this.userSubscribeModel.find().exec();
@@ -25,8 +30,7 @@ export class UserSubscribesService {
         return this.userSubscribeModel.find({ userId }).exec();
     }
 
-    async subscribeToPlan(subscriptionId: Subscription, userId: string) {
-
+    async subscribeToPlan(subscriptionId: Subscription, userId: string, stripeSubscriptionId: string) {
         const subscription = await this.subscriptionModel.findById(subscriptionId).exec();
         if (!subscription) {
             throw new Error('Subscription not found');
@@ -34,18 +38,31 @@ export class UserSubscribesService {
         
         return this.userSubscribeModel.create({
             subscription: subscriptionId,
-           _id: userId,
-           user: userId,
+            _id: userId,
+            user: userId,
+            stripeSubscriptionId,
+            status: 'active',
+            startDate: new Date(),
+            endDate: new Date(Date.now() + subscription.duration * 24 * 60 * 60 * 1000),
+            createdAt: new Date(),
+            updatedAt: new Date(),
         });
     }
 
     async refundSubscription(id: string) {
+        const userSubscribe = await this.userSubscribeModel.findById(id).exec();
+        if (userSubscribe?.stripeSubscriptionId) {
+            await this.stripeService.cancelSubscription(userSubscribe.stripeSubscriptionId);
+        }
         return this.userSubscribeModel.findByIdAndUpdate(id, { status: 'refunded' }).exec();
     }
 
     async cancelSubscription(id: string) {
+        const userSubscribe = await this.userSubscribeModel.findById(id).exec();
+        if (userSubscribe?.stripeSubscriptionId) {
+            await this.stripeService.cancelSubscription(userSubscribe.stripeSubscriptionId);
+        }
         return this.userSubscribeModel.findByIdAndUpdate(id, { status: 'cancelled' }).exec();
     }
-    
 }
     

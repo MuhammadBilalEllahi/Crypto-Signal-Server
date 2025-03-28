@@ -1,12 +1,13 @@
 /* eslint-disable prettier/prettier */
-import { Module, NestModule, MiddlewareConsumer } from "@nestjs/common";
+import { Module, NestModule, MiddlewareConsumer, forwardRef } from "@nestjs/common";
 import { UserSubscribesController } from "./userSubscibes.controller";
 import { UserSubscribesService } from "./userSubscibes.service";
-        import { Subscription } from "../subscription/subscription.schema";
+import { Subscription } from "../subscription/subscription.schema";
 import { UserSubscribe, UserSubscribeSchema } from "./userSubscribes.schema";
 import { MongooseModule } from "@nestjs/mongoose";
 import { SubscriptionSchema } from "../subscription/subscription.schema";
 import { AuthMiddleware } from "src/auth/auth.middleware";
+import { StripeModule } from "../stripe/stripe.module";
 
 @Module({
     controllers: [UserSubscribesController],
@@ -14,6 +15,7 @@ import { AuthMiddleware } from "src/auth/auth.middleware";
     imports: [
         MongooseModule.forFeature([{ name: UserSubscribe.name, schema: UserSubscribeSchema }]),
         MongooseModule.forFeature([{ name: Subscription.name, schema: SubscriptionSchema }]),
+        forwardRef(() => StripeModule),
     ],
     exports: [UserSubscribesService]
 })

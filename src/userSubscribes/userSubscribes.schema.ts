@@ -30,7 +30,10 @@ export class UserSubscribe {
     createdAt: Date;
 
     @Prop({ required: true })
-    updatedAt: Date;    
+    updatedAt: Date;
+
+    @Prop()
+    stripeSubscriptionId?: string;
 }
 
 export const UserSubscribeSchema = SchemaFactory.createForClass(UserSubscribe);
