@@ -29,7 +29,7 @@ export class Signal extends Document {
   @Prop({ default: false }) hasTradingAnalysis: boolean;
   @Prop({ default: false }) tradingAnalysis: string;
   @Prop({ default: false }) isDeleted: boolean;
-  @Prop({ default: 'spot-free' }) subscriptionValue: 'spot-free' | 'spot-paid' | 'future-free' | 'future-paid';
+  @Prop({ default: 'spot-free', required: true }) subscriptionValue: 'spot-free' | 'spot-paid' | 'future-free' | 'future-paid'; 
 }
 
 export const SignalSchema = SchemaFactory.createForClass(Signal);

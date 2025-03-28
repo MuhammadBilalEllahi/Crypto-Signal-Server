@@ -11,6 +11,8 @@ import { ConfigModule } from '@nestjs/config';
 import { NewsAlertModule } from './news-alerts/news-alert.module';
 import { RedisModule } from './redis/redis.module';
 import { AuthModule } from './auth/auth.module';
+import { SubscriptionModule } from './subscription/subsciption.module';
+  import { UserSubscribesModule } from './userSubscribes/userSubscribes.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -27,7 +29,8 @@ import { AuthModule } from './auth/auth.module';
     NewsAlertModule,
     WebSocketModule,
     RedisModule,
-    
+    SubscriptionModule,
+    UserSubscribesModule,
   ],
   // controllers: [AppController],
   providers: [],
