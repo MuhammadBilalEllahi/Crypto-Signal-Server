@@ -4,8 +4,17 @@ import { Document } from 'mongoose';
 
 export type SubscriptionDocument = Subscription & Document;
 
+export enum SubscriptionDuration {
+  MONTHLY = 'monthly',
+  YEARLY = 'yearly',
+  ONETIME = 'onetime'
+}
+
 @Schema()
 export class Subscription {
+  @Prop({ required: true })
+  stripeProductId: string;
+
   @Prop({ required: true })
   name: string;
 
@@ -21,8 +30,11 @@ export class Subscription {
   @Prop({ required: true })
   duration: number;
 
+  @Prop({ required: true, enum: SubscriptionDuration })
+  durationType: SubscriptionDuration;
+
   @Prop({ required: true })
-  features: string[];
+  marketingFeatures: string[];
 
   @Prop({ default: false })
   isInActive: boolean;

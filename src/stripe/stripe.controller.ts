@@ -5,7 +5,7 @@ import { AuthMiddleware } from '../auth/auth.middleware';
 import { UserSubscribesService } from '../userSubscribes/userSubscibes.service';
 import { SubscriptionService } from '../subscription/subscription.service';
 import { AdminMiddleware } from '../auth/admin.middleware';
-
+import { SubscriptionDuration } from '../subscription/subscription.schema';
 interface AuthenticatedRequest extends Request {
   user: {
     _id: string;
@@ -28,7 +28,8 @@ interface CreatePlanDto {
   description: string;
   price: number;
   currency: string;
-  features: string[];
+  marketingFeatures: string[];
+  durationType: SubscriptionDuration;
 }
 
 @Controller('stripe')
@@ -40,9 +41,48 @@ export class StripeController {
   ) {}
 
   @UseGuards(AdminMiddleware)
+  @Get('products')
+  async getProducts() {
+    return await this.stripeService.listProducts();
+  }
+
+  @UseGuards(AdminMiddleware)
+  @Get('prices')
+  async getPrices() {
+    return await this.stripeService.listPrices();
+  }
+
+  @UseGuards(AdminMiddleware)
   @Get('subscriptions')
   async getStripeSubscriptions(): Promise<StripeSubscription[]> {
     return await this.stripeService.listSubscriptions();
+  }
+
+  @UseGuards(AdminMiddleware)
+  @Get('plans')
+  async getPlans() {
+    const products = await this.stripeService.listProducts();
+    const prices = await this.stripeService.listPrices();
+    
+
+    console.log("______products", products);
+    console.log("______prices", prices);
+
+    return products.map(product => {
+      const productPrices = prices.filter(price => price.product === product.id);
+      return {
+        id: product.id,
+        name: product.name,
+        description: product.description,
+        features: product.metadata?.features?.split(',') || [],
+        prices: productPrices.map(price => ({
+          id: price.id,
+          amount: price.unit_amount,
+          currency: price.currency,
+          interval: price.recurring?.interval,
+        })),
+      };
+    });
   }
 
   @UseGuards(AdminMiddleware)
@@ -51,13 +91,18 @@ export class StripeController {
     // Create product in Stripe
     const product = await this.stripeService.createProduct(
       body.name,
+      body.price,
+      body.currency,
       body.description,
+      body.durationType,
+      // body.duration,
+      body.marketingFeatures,
     );
 
     // Add features as metadata
     await this.stripeService.updateProduct(product.id, {
       metadata: {
-        features: body.features.join(','),
+        marketingFeatures: body.marketingFeatures.join(','),
       },
     });
 
@@ -66,6 +111,7 @@ export class StripeController {
       body.price,
       body.currency,
       product.id,
+      body.durationType,
     );
 
     return {
@@ -75,7 +121,7 @@ export class StripeController {
       description: product.description,
       price: price.unit_amount,
       currency: price.currency,
-      features: body.features,
+      marketingFeatures: body.marketingFeatures,
     };
   }
 

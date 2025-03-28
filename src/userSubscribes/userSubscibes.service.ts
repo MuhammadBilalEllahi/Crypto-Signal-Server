@@ -1,6 +1,7 @@
 /* eslint-disable prettier/prettier */
 import { Injectable, Inject, forwardRef } from "@nestjs/common";
 import { Model } from "mongoose";
+import { InjectModel } from "@nestjs/mongoose";
 import { UserSubscribe } from "./userSubscribes.schema";
 import { Subscription } from "../subscription/subscription.schema";
 import { StripeService } from "../stripe/stripe.service";
@@ -8,7 +9,9 @@ import { StripeService } from "../stripe/stripe.service";
 @Injectable()
 export class UserSubscribesService {
     constructor(
+        @InjectModel(UserSubscribe.name)
         private readonly userSubscribeModel: Model<UserSubscribe>,
+        @InjectModel(Subscription.name)
         private readonly subscriptionModel: Model<Subscription>,
         @Inject(forwardRef(() => StripeService))
         private readonly stripeService: StripeService,

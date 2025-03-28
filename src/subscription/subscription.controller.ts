@@ -30,6 +30,7 @@ export class SubscriptionController {
   @UseGuards(AdminMiddleware)
   @Post()
   create(@Body() subscription: Subscription) {
+    console.log("subscription in create controller ", subscription);
     return this.subscriptionService.create(subscription);
   }
 

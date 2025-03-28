@@ -13,7 +13,7 @@ interface AuthenticatedRequest extends Request{
     }
 }
 
-@Controller()
+@Controller('user-subscribes')
 export class UserSubscribesController {
     constructor(private readonly userSubscribesService: UserSubscribesService) {}
 
@@ -42,7 +42,7 @@ export class UserSubscribesController {
         return this.userSubscribesService.findMySubscribe(userId);
     }
 
-    @Post()
+    @Post('user/pay-plan/:priceId')
     subscribeToPlan(@Body() subscriptionId: Subscription, @Req() req: AuthenticatedRequest, @Body() stripeSubscriptionId: string) {
         const userId = req.user._id;
         return this.userSubscribesService.subscribeToPlan(subscriptionId, userId, stripeSubscriptionId);

@@ -55,7 +55,8 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       if (ttl) {
         await this.redisClient.setex(key, ttl, stringValue);
       } else {
-        await this.redisClient.set(key, stringValue);
+        const expiry = 7 * 24 * 60 * 60;
+        await this.redisClient.setex(key, expiry, stringValue);
       }
     } catch (error) {
       console.error('Redis set error:', error);

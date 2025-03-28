@@ -1,9 +1,8 @@
 /* eslint-disable prettier/prettier */
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Model } from 'mongoose';
+import { Document } from 'mongoose';
 import * as mongoose from 'mongoose';
-import { UserSubscribe, UserSubscribeDocument } from 'src/userSubscribes/userSubscribes.schema';
-
+import { UserSubscribe } from 'src/userSubscribes/userSubscribes.schema';
 export type UserDocument = User & Document;
 
 @Schema()
@@ -47,6 +46,10 @@ export class User {
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'UserSubscribe' })
   defaultUserSubscribe: mongoose.Schema.Types.ObjectId;
 
+  @Prop({ default: true })
+  freePlan: boolean;
+
+
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'UserSubscribe' })
   userSubscribe: mongoose.Schema.Types.ObjectId;
 }
@@ -55,13 +58,10 @@ export const UserSchema = SchemaFactory.createForClass(User);
 
 UserSchema.pre<UserDocument>('save', async function (next) {
   if (this.isNew) {
-    const defaultUserSubscribe = await mongoose.model<UserSubscribeDocument>('UserSubscribe').findOne({ name: 'Free' });
+    const defaultUserSubscribe = await mongoose.model<UserSubscribe>('UserSubscribe').findOne({ name: 'Free' });
     if (defaultUserSubscribe) {
       this.defaultUserSubscribe = defaultUserSubscribe._id;
     }
   }
   next();
 });
-
-
-

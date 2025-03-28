@@ -2,6 +2,7 @@
 import { Injectable } from '@nestjs/common';
 import Stripe from 'stripe';
 import { ConfigService } from '@nestjs/config';
+import { SubscriptionDuration } from '../subscription/subscription.schema';
 
 export interface StripeSubscription {
   id: string;
@@ -18,6 +19,10 @@ export interface StripeSubscription {
       id: string;
       name: string;
       description: string;
+      metadata: {
+        features?: string;
+        marketingFeatures?: string;
+      };
     };
   }>;
 }
@@ -36,11 +41,29 @@ export class StripeService {
     });
   }
 
+  async listProducts(): Promise<Stripe.Product[]> {
+    const products = await this.stripe.products.list({
+      active: true,
+      expand: ['data.default_price'],
+    });
+    return products.data;
+  }
+
+  async listPrices(): Promise<Stripe.Price[]> {
+    const prices = await this.stripe.prices.list({
+      active: true,
+      expand: ['data.product'],
+    });
+    console.log("______[listPrices]prices", prices);
+    return prices.data;
+  }
+
   async listSubscriptions(): Promise<StripeSubscription[]> {
     const subscriptions = await this.stripe.subscriptions.list({
-      expand: ['data.customer', 'data.items.data.price.product'],
+      expand: ['data.customer', 'data.items.data.price'],
     });
 
+    console.log("subscriptions", subscriptions);
     return subscriptions.data.map(subscription => ({
       id: subscription.id,
       status: subscription.status,
@@ -49,13 +72,14 @@ export class StripeService {
       items: subscription.items.data.map(item => ({
         price: {
           id: item.price.id,
-          unit_amount: (item.price as Stripe.Price).unit_amount || 0,
-          currency: (item.price as Stripe.Price).currency,
+          unit_amount: (item.price).unit_amount || 0,
+          currency: (item.price).currency,
         },
         product: {
-          id: (item.price as Stripe.Price).product as string,
-          name: ((item.price as Stripe.Price).product as Stripe.Product).name,
-          description: ((item.price as Stripe.Price).product as Stripe.Product).description || '',
+          id: (item.price).product as string,
+          name: ((item.price).product as Stripe.Product).name,
+          description: ((item.price).product as Stripe.Product).description || '',
+          metadata: ((item.price).product as Stripe.Product).metadata,
         },
       })),
     }));
@@ -77,22 +101,44 @@ export class StripeService {
     });
   }
 
-  async createPrice(amount: number, currency: string, productId: string): Promise<Stripe.Price> {
-    return await this.stripe.prices.create({
+  async createPrice(amount: number, currency: string, productId: string, durationType: SubscriptionDuration): Promise<Stripe.Price> {
+    const priceData: Stripe.PriceCreateParams = {
       unit_amount: amount * 100, // Convert to cents
       currency,
       product: productId,
-      recurring: {
-        interval: 'month',
-      },
-    });
+    };
+
+    if (durationType !== SubscriptionDuration.ONETIME) {
+      priceData.recurring = {
+        interval: durationType === SubscriptionDuration.MONTHLY ? 'month' : 'year',
+        interval_count: durationType === SubscriptionDuration.YEARLY ? 1 : undefined,
+      };
+    }
+
+    return await this.stripe.prices.create(priceData);
   }
 
-  async createProduct(name: string, description: string): Promise<Stripe.Product> {
-    return await this.stripe.products.create({
+  async createProduct(
+    name: string,
+    price: number,
+    currency: string,
+    description: string,
+    durationType: SubscriptionDuration,
+    marketingFeatures: string[],
+  ): Promise<Stripe.Product> {
+    const productData = {
       name,
       description,
-    });
+      metadata: {
+        marketingFeatures: marketingFeatures.join(','),
+      },
+      default_price_data: {
+        unit_amount: price * 100, // Convert to cents
+        currency: currency,
+      },
+    } as const;
+
+    return await this.stripe.products.create(productData);
   }
 
   async updateProduct(productId: string, data: Stripe.ProductUpdateParams): Promise<Stripe.Product> {

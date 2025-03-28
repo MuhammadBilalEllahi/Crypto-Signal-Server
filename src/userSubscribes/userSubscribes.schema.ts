@@ -3,16 +3,15 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 import * as mongoose from 'mongoose';
 
-export type UserSubscribeDocument = UserSubscribe & Document;
 
 @Schema()
-export class UserSubscribe {
+export class UserSubscribe extends Document {
 
     @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User' })
-    _id: mongoose.Schema.Types.ObjectId;
+    declare  _id: mongoose.Schema.Types.ObjectId;
 
     @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User' })
-    user: mongoose.Schema.Types.ObjectId;
+    user: mongoose.Schema.Types.ObjectId; 
 
     @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Subscription' })
     subscription: mongoose.Schema.Types.ObjectId;
@@ -37,4 +36,3 @@ export class UserSubscribe {
 }
 
 export const UserSubscribeSchema = SchemaFactory.createForClass(UserSubscribe);
-    
