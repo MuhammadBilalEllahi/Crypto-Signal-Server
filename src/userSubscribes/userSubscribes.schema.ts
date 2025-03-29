@@ -28,7 +28,7 @@ export class UserSubscribe extends Document {
     @Prop()
     stripeSubscriptionId: string;
 
-    @Prop({ required: true, enum: ['pending', 'active', 'cancelled', 'failed'] })
+    @Prop({ required: true, enum: ['pending', 'active', 'cancelled', 'failed', 'expired'] })
     status: string;
 
     @Prop({ required: true })

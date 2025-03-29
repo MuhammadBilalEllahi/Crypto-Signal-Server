@@ -277,6 +277,26 @@ export class SignalService {
   }
 
 
+  @Cron('0 0 * * *') // every day at 00:00
+  async checkUserFreePlan(): Promise<void> {
+    try {
+      const users = await this.userModel.find({ userSubscribe: { $exists: true } });
+
+      for (const user of users) {
+        const userSubscribe = await this.userSubscribeModel.findById(user._id);
+        if (userSubscribe && userSubscribe.status === 'active' && userSubscribe.endDate < new Date()  ) {
+          await this.userModel.updateOne({ _id: user._id }, { freePlan: true });
+          userSubscribe.status = 'expired';
+          await userSubscribe.save();
+          await this.redisService.del(`user_subscribe_status_${user._id}`);
+          console.log(`Updated user ${user._id} free plan to true as the subscription expired.`);
+        }
+      }
+    } catch (error) {
+      console.error('Error updating users free plan:', error);
+    }
+  }
+
   // async findHistory(page: number = 1, pageSize: number = 10) {
   //   const skip = (page - 1) * pageSize;
     

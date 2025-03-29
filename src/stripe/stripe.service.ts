@@ -3,6 +3,9 @@ import { Injectable } from '@nestjs/common';
 import Stripe from 'stripe';
 import { ConfigService } from '@nestjs/config';
 import { SubscriptionDuration } from '../subscription/subscription.schema';
+import { UserSubscribe } from '../userSubscribes/userSubscribes.schema';
+import { Model } from 'mongoose';
+import { InjectModel } from '@nestjs/mongoose';
 
 export interface StripeSubscription {
   id: string;
@@ -31,7 +34,7 @@ export interface StripeSubscription {
 export class StripeService {
   private stripe: Stripe;
 
-  constructor(private configService: ConfigService) {
+  constructor(private configService: ConfigService, @InjectModel(UserSubscribe.name) private userSubscribeModel: Model<UserSubscribe>) {
     const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
     if (!secretKey) {
       throw new Error('STRIPE_SECRET_KEY is not defined');
@@ -56,6 +59,20 @@ export class StripeService {
     });
     console.log("______[listPrices]prices", prices);
     return prices.data;
+  }
+
+  async listPricesAndCheckUserSubscribe(_id: string): Promise<{data: Stripe.Price[], message: string}> {
+    const userSubscribes = await this.userSubscribeModel.findById(_id);
+    if(userSubscribes && userSubscribes.status === 'active'){
+      return {message: 'alreadySubscribed', data: []};
+    }
+
+    const prices = await this.stripe.prices.list({
+      active: true,
+      expand: ['data.product'],
+    });
+    console.log("______[listPrices]prices", prices);
+    return {data: prices.data, message: 'notSubscribed'};
   }
 
   async listSubscriptions(): Promise<StripeSubscription[]> {

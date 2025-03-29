@@ -6,6 +6,9 @@ import { ConfigModule } from '@nestjs/config';
 import { SubscriptionModule } from '../subscription/subsciption.module';
 import { UserModule } from '../user/user.module';
 import { UserSubscribesModule } from '../userSubscribes/userSubscribes.module';
+import { UserSubscribe } from '../userSubscribes/userSubscribes.schema';
+import { UserSubscribeSchema } from '../userSubscribes/userSubscribes.schema';
+import { MongooseModule } from '@nestjs/mongoose';
 
 @Module({
   imports: [
@@ -13,6 +16,7 @@ import { UserSubscribesModule } from '../userSubscribes/userSubscribes.module';
     UserModule,
     forwardRef(() => UserSubscribesModule),
     forwardRef(() => SubscriptionModule),
+    MongooseModule.forFeature([{ name: UserSubscribe.name, schema: UserSubscribeSchema }]),
   ],
   controllers: [StripeController],
   providers: [StripeService],

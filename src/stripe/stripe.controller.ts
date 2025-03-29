@@ -49,10 +49,16 @@ export class StripeController {
     return await this.stripeService.listProducts();
   }
 
-  @UseGuards(AdminMiddleware)
+  
   @Get('prices')
   async getPrices() {
     return await this.stripeService.listPrices();
+  }
+
+  
+  @Get('prices/checkUserSubscribe')
+  async getPricescandcheckUserSubscribe( @Req() req: AuthenticatedRequest) {
+    return await this.stripeService.listPricesAndCheckUserSubscribe(req.user._id);
   }
 
   @UseGuards(AdminMiddleware)
