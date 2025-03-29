@@ -125,18 +125,25 @@ export class StripeService {
     description: string,
     durationType: SubscriptionDuration,
     marketingFeatures: string[],
+    disableForUser: boolean,
   ): Promise<Stripe.Product> {
-    const productData = {
+    const productData: Stripe.ProductCreateParams = {
       name,
       description,
       metadata: {
         marketingFeatures: marketingFeatures.join(','),
+        disableForUser: disableForUser.toString(),
       },
       default_price_data: {
         unit_amount: price * 100, // Convert to cents
-        currency: currency,
+        currency,
+        recurring: durationType !== SubscriptionDuration.ONETIME ? {
+          interval: durationType === SubscriptionDuration.MONTHLY ? 'month' : 'year',
+          interval_count: durationType === SubscriptionDuration.YEARLY ? 1 : undefined,
+        } : undefined,
       },
-    } as const;
+      active: disableForUser, // If disableForUser is true, the product will be inactive
+    };
 
     return await this.stripe.products.create(productData);
   }

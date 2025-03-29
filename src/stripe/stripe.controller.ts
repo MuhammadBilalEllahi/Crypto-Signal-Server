@@ -30,6 +30,7 @@ interface CreatePlanDto {
   currency: string;
   marketingFeatures: string[];
   durationType: SubscriptionDuration;
+  disableForUser: boolean;
 }
 
 @Controller('stripe')
@@ -95,8 +96,8 @@ export class StripeController {
       body.currency,
       body.description,
       body.durationType,
-      // body.duration,
       body.marketingFeatures,
+      body.disableForUser,
     );
 
     // Add features as metadata
