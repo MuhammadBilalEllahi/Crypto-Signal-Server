@@ -16,6 +16,8 @@ export class Subscription {
   stripeProductId: string;
 
   @Prop({ required: true })
+  stripePriceId: string;
+  @Prop({ required: true })
   name: string;
 
   @Prop({ required: true })

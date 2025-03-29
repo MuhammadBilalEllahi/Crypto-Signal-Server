@@ -95,6 +95,11 @@ export class StripeService {
     });
   }
 
+  async getCustomer(email: string): Promise<Stripe.Customer> {
+    const customers = await this.stripe.customers.list({ email });
+    return customers.data[0];
+  }
+
   async createCustomer(email: string): Promise<Stripe.Customer> {
     return await this.stripe.customers.create({
       email,
@@ -130,6 +135,7 @@ export class StripeService {
     const productData: Stripe.ProductCreateParams = {
       name,
       description,
+      // marketing_features: marketingFeatures.join(','),
       metadata: {
         marketingFeatures: marketingFeatures.join(','),
         disableForUser: disableForUser.toString(),

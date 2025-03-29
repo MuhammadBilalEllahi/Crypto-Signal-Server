@@ -61,6 +61,7 @@ export class SubscriptionService {
 
     // Set the Stripe product ID
     subscription.stripeProductId = stripeProduct.id;
+    subscription.stripePriceId = stripeProduct.default_price as string;
 
     // Create the subscription in our database
     return this.subscriptionModel.create(subscription);

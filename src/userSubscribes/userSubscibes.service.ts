@@ -5,7 +5,7 @@ import { InjectModel } from "@nestjs/mongoose";
 import { UserSubscribe } from "./userSubscribes.schema";
 import { Subscription } from "../subscription/subscription.schema";
 import { StripeService } from "../stripe/stripe.service";
-
+import { User } from "src/user/user.schema";
 @Injectable()
 export class UserSubscribesService {
     constructor(
@@ -14,7 +14,9 @@ export class UserSubscribesService {
         @InjectModel(Subscription.name)
         private readonly subscriptionModel: Model<Subscription>,
         @Inject(forwardRef(() => StripeService))
-        private readonly stripeService: StripeService,
+            private readonly stripeService: StripeService,
+        @InjectModel(User.name)
+        private readonly userModel: Model<User>,
     ) {}
 
     async findAll() {
@@ -33,23 +35,45 @@ export class UserSubscribesService {
         return this.userSubscribeModel.find({ userId }).exec();
     }
 
-    async subscribeToPlan(subscriptionId: Subscription, userId: string, stripeSubscriptionId: string) {
-        const subscription = await this.subscriptionModel.findById(subscriptionId).exec();
+    async subscribeToPlan(userId: string, priceId: string, productId: string, userEmail: string) {
+        console.log("USER ID--: ", userId);
+        console.log("PRICE ID:--- ", priceId);
+        console.log("PRODUCT ID:--- ", productId);
+        console.log("USER EMAIL:--- ", userEmail);
+        const subscription = await this.subscriptionModel.findOne({ stripePriceId: priceId }).exec();
+        
         if (!subscription) {
             throw new Error('Subscription not found');
         }
+        const userData = await this.userModel.findById(userId).exec();
+        if (!userData) {
+            throw new Error('User not found');
+        }
         
-        return this.userSubscribeModel.create({
-            subscription: subscriptionId,
+        await this.userSubscribeModel.create({
+            subscription: subscription._id,
             _id: userId,
             user: userId,
-            stripeSubscriptionId,
-            status: 'active',
+            stripeProductId: productId,
+            stripePriceId: priceId,
+            status: 'pending',
             startDate: new Date(),
             endDate: new Date(Date.now() + subscription.duration * 24 * 60 * 60 * 1000),
             createdAt: new Date(),
             updatedAt: new Date(),
         });
+
+        
+
+        let customer =await this.stripeService.getCustomer(userEmail);
+        if(!customer){
+             customer = await this.stripeService.createCustomer(userEmail);
+        }
+        // const subscriptionData   = await this.stripeService.createSubscription(priceId, customer.id);
+        await this.userSubscribeModel.findByIdAndUpdate(userId, { stripeCustomerId: customer.id }).exec();
+        const subscriptionData = await this.stripeService.createSubscription(priceId, customer.id);
+        await this.userSubscribeModel.findByIdAndUpdate(userId, { stripeSubscriptionId: subscriptionData.id }).exec();
+        return subscriptionData;
     }
 
     async refundSubscription(id: string) {

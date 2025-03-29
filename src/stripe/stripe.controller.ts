@@ -17,6 +17,8 @@ interface AuthenticatedRequest extends Request {
 interface CreateSubscriptionDto {
   priceId: string;
   subscriptionId: string;
+  productId: string;
+  userEmail: string;
 }
 
 interface CancelSubscriptionDto {
@@ -144,13 +146,14 @@ export class StripeController {
     );
 
     // Get the subscription plan
-    const subscriptionPlan = await this.subscriptionService.findOneById(body.subscriptionId);
+    // const subscriptionPlan = await this.subscriptionService.findOneById(body.subscriptionId);
 
     // Update user's subscription
     await this.userSubscribesService.subscribeToPlan(
-      subscriptionPlan,
-      userId,
-      subscription.id,
+      userId, 
+      body.priceId,
+      body.productId,
+      email,
     );
 
     return {

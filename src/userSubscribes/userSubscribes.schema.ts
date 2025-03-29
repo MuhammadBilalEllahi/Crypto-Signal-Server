@@ -16,6 +16,18 @@ export class UserSubscribe extends Document {
     @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Subscription' })
     subscription: mongoose.Schema.Types.ObjectId;
 
+    @Prop()
+    stripePriceId: string;
+
+    @Prop()
+    stripeProductId: string;
+
+    @Prop()
+    stripeCustomerId: string;
+
+    @Prop()
+    stripeSubscriptionId: string;
+
     @Prop({ required: true, enum: ['pending', 'active', 'cancelled'] })
     status: string;
 
@@ -31,8 +43,6 @@ export class UserSubscribe extends Document {
     @Prop({ required: true })
     updatedAt: Date;
 
-    @Prop()
-    stripeSubscriptionId?: string;
 }
 
 export const UserSubscribeSchema = SchemaFactory.createForClass(UserSubscribe);

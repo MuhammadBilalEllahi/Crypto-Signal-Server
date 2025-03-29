@@ -42,10 +42,15 @@ export class UserSubscribesController {
         return this.userSubscribesService.findMySubscribe(userId);
     }
 
-    @Post('user/pay-plan/:priceId')
-    subscribeToPlan(@Body() subscriptionId: Subscription, @Req() req: AuthenticatedRequest, @Body() stripeSubscriptionId: string) {
+    @Post('user/pay-plan/:priceId/:productId')
+    subscribeToPlan(@Req() req: AuthenticatedRequest, @Param('priceId') priceId: string, @Param('productId') productId: string ) {
         const userId = req.user._id;
-        return this.userSubscribesService.subscribeToPlan(subscriptionId, userId, stripeSubscriptionId);
+        const userEmail = req.user.email;
+        console.log("USER ID: ", userId);
+        console.log("PRICE ID: ", priceId);
+        console.log("PRODUCT ID: ", productId);
+        console.log("USER EMAIL: ", userEmail);
+        return this.userSubscribesService.subscribeToPlan(userId, priceId, productId, userEmail);
     }
 
     refundSubscription(@Param('id') id: string) {

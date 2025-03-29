@@ -12,14 +12,19 @@ import { UserSubscribesController } from "./userSubscibes.controller";
 import { UserSubscribe, UserSubscribeSchema } from "./userSubscribes.schema";
 import { UserModule } from "../user/user.module";
 import { SubscriptionModule } from "../subscription/subsciption.module";
+import { User, UserSchema } from "../user/user.schema";
 
 @Module({
     imports: [
-        MongooseModule.forFeature([{ name: UserSubscribe.name, schema: UserSubscribeSchema }]),
-        MongooseModule.forFeature([{ name: Subscription.name, schema: SubscriptionSchema }]),
+        MongooseModule.forFeature([
+            { name: UserSubscribe.name, schema: UserSubscribeSchema },
+            { name: Subscription.name, schema: SubscriptionSchema },
+            { name: User.name, schema: UserSchema }
+        ]),
         UserModule,
         forwardRef(() => StripeModule),
         forwardRef(() => SubscriptionModule),
+        forwardRef(() => UserModule),
     ],
     controllers: [UserSubscribesController],
     providers: [UserSubscribesService],
