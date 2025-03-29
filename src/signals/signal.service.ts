@@ -201,9 +201,11 @@ export class SignalService {
       }
     } else {
       const cachedFreeSignals = await this.redisService.get(redisKey);
-      if (cachedFreeSignals) {
+      if (cachedFreeSignals && cachedFreeSignals !== '[]') {
+        console.log("cachedFreeSignals", cachedFreeSignals);
         signals = JSON.parse(cachedFreeSignals as string) as Signal[];
       } else {
+        console.log("Fetching free signals from database");
         // Fetch free signals from database
         signals = await this.signalModel
           .find({

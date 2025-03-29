@@ -43,6 +43,15 @@ export class UserSubscribe extends Document {
     @Prop({ required: true })
     updatedAt: Date;
 
+
+
+    paymentIntentId: string;
+    amount: number;
+    currency: string;
+    StripeStatus: string;
+    created: Date;
+    paymentMethodId: string;
+
 }
 
 export const UserSubscribeSchema = SchemaFactory.createForClass(UserSubscribe);

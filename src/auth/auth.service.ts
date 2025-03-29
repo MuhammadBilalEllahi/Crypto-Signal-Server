@@ -11,26 +11,26 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  // Email Authentication
-  async createUserWithEmail(email: string, password: string) {
-    try {
-      const userRecord = await admin.auth().createUser({
-        email,
-        password,
-        emailVerified: false,
-      });
+  // // Email Authentication
+  // async createUserWithEmail(email: string, password: string) {
+  //   try {
+  //     const userRecord = await admin.auth().createUser({
+  //       email,
+  //       password,
+  //       emailVerified: false,
+  //     });
 
-      await this.userService.createUser({
-        uid: userRecord.uid,
-        email: userRecord.email as string,
-        role: 'user',
-      });
+  //     await this.userService.createUser({
+  //       uid: userRecord.uid,
+  //       email: userRecord.email as string,
+  //       role: 'user',
+  //     });
 
-      return userRecord;
-    } catch (error) {
-      throw new UnauthorizedException(error.message);
-    }
-  }
+  //     return userRecord;
+  //   } catch (error) {
+  //     throw new UnauthorizedException(error.message);
+  //   }
+  // }
 
   // Phone Authentication
   async createUserWithPhone(phoneNumber: string) {
@@ -166,6 +166,7 @@ export class AuthService {
       sub: user.uid,
       email: user.email,
       role: user.role,
+      _id: user._id,
     };
 
     return {

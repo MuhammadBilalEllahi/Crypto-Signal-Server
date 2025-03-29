@@ -6,14 +6,14 @@ import { getEnabledCategories } from 'trace_events';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Post('email/register')
-  async registerWithEmail(@Body() body: { email: string; password: string }) {
-    const user = await this.authService.createUserWithEmail(
-      body.email,
-      body.password,
-    );
-    return this.authService.generateToken(user);
-  }
+  // @Post('email/register')
+  // async registerWithEmail(@Body() body: { email: string; password: string }) {
+  //   const user = await this.authService.createUserWithEmail(
+  //     body.email,
+  //     body.password,
+  //   );
+  //   return this.authService.generateToken(user);
+  // }
 
   @Post('phone/register')
   async registerWithPhone(@Body() body: { phoneNumber: string }) {
