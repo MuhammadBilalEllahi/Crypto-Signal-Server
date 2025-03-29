@@ -57,7 +57,9 @@ export class SignalService {
       const createdSignal = new this.signalModel(signal);
       const savedSignal = await createdSignal.save();
 
+      console.log("STARTING TO SEND SIGNAL TO SOCKET")
       if(savedSignal.isLive){
+        console.log("SAVING SIGNAL TO DATABASE anf isLive is true")
         const signalData = (savedSignal.toObject ? savedSignal.toObject() : savedSignal) as SignalData;
           const response: SignalResponse = {
           ...signalData,
@@ -67,9 +69,33 @@ export class SignalService {
           expireAt: moment(signalData.expireAt).format('D MMMM YYYY HH:mm'),
           isFavorite: false,
         };
+        console.log("LIVE STATUS", response.isLive)
+        console.log("--------------------SUBSCRIPTION VALUE", response.subscriptionValue, response.subscriptionValue == 'spot-free')
+        if(response.subscriptionValue == 'spot-free'){
+          const redisKey =  'signals_paginated_all' ;
+          console.log("inside spot-free")
+
+          const cachedSignals = await this.redisService.get(redisKey);
+        if(cachedSignals){
+          const cachedSignalsArray = JSON.parse(cachedSignals as string) as Signal[];
+          cachedSignalsArray.push(createdSignal);
+          await this.redisService.set(redisKey, JSON.stringify(cachedSignalsArray));
+        }
         console.log("savedSignalWithCreatedFormated", response);
         this.signalGateway.sendSignal(response);
+        }else{
+          console.log("inside paid")
+          const redisKey = 'premium_signals_paginated_all';
+          const cachedSignals = await this.redisService.get(redisKey);
+          if(cachedSignals){
+            const cachedSignalsArray = JSON.parse(cachedSignals as string) as Signal[];
+            cachedSignalsArray.push(createdSignal);
+            await this.redisService.set(redisKey, JSON.stringify(cachedSignalsArray));
+          }
+          this.signalGateway.sendToPremiumUsers(response);
+        }
       }
+      console.log("returning savedSignal", savedSignal)
       return savedSignal;
     } catch (error) {
       console.error('Error creating signal:', error);

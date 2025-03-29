@@ -20,6 +20,7 @@ import { UserSubscribe, UserSubscribeSchema } from 'src/userSubscribes/userSubsc
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
     RedisModule,
     MongooseModule.forFeature([{ name: UserSubscribe.name, schema: UserSubscribeSchema }]),
+    RedisModule,
   ],
   controllers: [SignalController],
   providers: [SignalService, SignalGateway],
