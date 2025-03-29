@@ -56,7 +56,20 @@ export class SignalService {
     try {
       const createdSignal = new this.signalModel(signal);
       const savedSignal = await createdSignal.save();
-      this.signalGateway.sendSignal(savedSignal);
+
+      if(savedSignal.isLive){
+        const signalData = (savedSignal.toObject ? savedSignal.toObject() : savedSignal) as SignalData;
+          const response: SignalResponse = {
+          ...signalData,
+          _id: signalData._id.toString(),
+          createdAt: moment(signalData.createdAt).fromNow(),
+          createdFormatted: moment(signalData.createdAt).format('D MMMM YYYY HH:mm'),
+          expireAt: moment(signalData.expireAt).format('D MMMM YYYY HH:mm'),
+          isFavorite: false,
+        };
+        console.log("savedSignalWithCreatedFormated", response);
+        this.signalGateway.sendSignal(response);
+      }
       return savedSignal;
     } catch (error) {
       console.error('Error creating signal:', error);
