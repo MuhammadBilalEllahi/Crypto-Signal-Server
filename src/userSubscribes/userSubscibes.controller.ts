@@ -53,6 +53,18 @@ export class UserSubscribesController {
         return this.userSubscribesService.subscribeToPlan(userId, priceId, productId, userEmail);
     }
 
+    @Post('user/paid')
+    userPaid(@Body() body: any, @Req() req: AuthenticatedRequest) {
+        const userId = req.user._id;
+        return this.userSubscribesService.userPaid(body, userId);
+    }
+
+    @Post('user/failed')
+    userFailed(@Req() req: AuthenticatedRequest) {
+        const userId = req.user._id;
+        return this.userSubscribesService.userFailed(userId);
+    }
+
     refundSubscription(@Param('id') id: string) {
         return this.userSubscribesService.refundSubscription(id);
     }

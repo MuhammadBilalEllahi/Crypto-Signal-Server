@@ -43,8 +43,8 @@ export class User {
   @Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'NewsAlert' }], default: [] })
   savedNewsAlerts: {type:mongoose.Schema.Types.ObjectId, ref:'NewsAlert'}[];
 
-  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'UserSubscribe' })
-  defaultUserSubscribe: mongoose.Schema.Types.ObjectId;
+  // @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'UserSubscribe' })
+  // defaultUserSubscribe: mongoose.Schema.Types.ObjectId;
 
   @Prop({ default: true })
   freePlan: boolean;
@@ -56,12 +56,12 @@ export class User {
 
 export const UserSchema = SchemaFactory.createForClass(User);
 
-UserSchema.pre<UserDocument>('save', async function (next) {
-  if (this.isNew) {
-    const defaultUserSubscribe = await mongoose.model<UserSubscribe>('UserSubscribe').findOne({ name: 'Free' });
-    if (defaultUserSubscribe) {
-      this.defaultUserSubscribe = defaultUserSubscribe._id;
-    }
-  }
-  next();
-});
+// UserSchema.pre<UserDocument>('save', async function (next) {
+//   if (this.isNew) {
+//     const defaultUserSubscribe = await mongoose.model<UserSubscribe>('UserSubscribe').findOne({ name: 'Free' });
+//     if (defaultUserSubscribe) {
+//       this.defaultUserSubscribe = defaultUserSubscribe._id;
+//     }
+//   }
+//   next();
+// });

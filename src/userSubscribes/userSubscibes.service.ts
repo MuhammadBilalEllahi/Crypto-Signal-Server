@@ -81,7 +81,37 @@ export class UserSubscribesService {
         return {
             proceedTOPaymentPage: true,
             customerId: customer.id,
-            
+            subscriptionId: subscriptionData.id,
+            clientSecret: (subscriptionData.latest_invoice as any).payment_intent
+                  .client_secret,
+    
+        };
+    }
+
+
+    async userPaid(body: any, userId: string) {
+        const userSubscribe = await this.userSubscribeModel.findByIdAndUpdate(userId, { status: 'active' }).exec();
+
+        if(!userSubscribe){
+            throw new Error('User subscribe not found');
+        }
+       const user= await this.userModel.findByIdAndUpdate(userId, { userSubscribe: userSubscribe._id, freePlan: false }).exec();
+        return {
+            success: true,
+            message: 'User paid successfully',
+            userSubscribe: userSubscribe,
+            user: user
+        };
+    }
+
+    async userFailed(userId: string) {
+        const userSubscribe = await this.userSubscribeModel.findByIdAndUpdate(userId, { status: 'failed' }).exec();
+      const user= await this.userModel.findByIdAndUpdate(userId, { freePlan: true }).exec();
+        return {
+            successfullyFailed: true,
+            message: 'User failed to pay',
+            userSubscribe: userSubscribe,
+            user: user
         };
     }
 

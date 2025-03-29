@@ -11,7 +11,7 @@ import { AdminMiddleware } from 'src/auth/admin.middleware';
 import { UserModule } from 'src/user/user.module';
 import { User, UserSchema } from 'src/user/user.schema';
 import { RedisModule } from 'src/redis/redis.module';
-
+import { UserSubscribe, UserSubscribeSchema } from 'src/userSubscribes/userSubscribes.schema';
 @Module({
   imports: [
     UserModule,
@@ -19,6 +19,7 @@ import { RedisModule } from 'src/redis/redis.module';
     forwardRef(() => SignalModule),
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
     RedisModule,
+    MongooseModule.forFeature([{ name: UserSubscribe.name, schema: UserSubscribeSchema }]),
   ],
   controllers: [SignalController],
   providers: [SignalService, SignalGateway],

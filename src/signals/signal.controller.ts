@@ -8,11 +8,33 @@ import { AdminMiddleware } from 'src/auth/admin.middleware';
 
 interface AuthenticatedRequest extends Request {
   user: {
+    _id: string;
     uid: string;
     email: string;
   }
 }
 
+
+
+interface SignalResponse {
+  _id: string;
+  createdAt: string;
+  createdFormatted: string;
+  expireAt: string;
+  isFavorite: boolean;
+  [key: string]: any;
+}
+
+interface PaginatedResponse {
+  signals: SignalResponse[];
+  pagination: {
+    currentPage: number;
+    pageSize: number;
+    totalSignals: number;
+    totalPages: number;
+  };
+  isPremiumUser: boolean;
+}
 @Controller('signals')
 export class SignalController {
   constructor(private readonly signalService: SignalService) { }
@@ -95,14 +117,14 @@ export class SignalController {
 
   @Get('/paginated')
   async findAllPaginated(
+    @Req() req: AuthenticatedRequest,
     @Query('pageId') pageId: string,
     @Query('pageSize') pageSize: string,
-    @Req() req: AuthenticatedRequest
   ) {
     const page = parseInt(pageId) || 1;
     const size = parseInt(pageSize) || 10;
 
-    return this.signalService.findAllPaginated(page, size, req.user.uid);
+    return this.signalService.findAllPaginated(req.user._id, page, size) as Promise<PaginatedResponse>;
   }
 
   @Get('history')
@@ -114,7 +136,7 @@ export class SignalController {
     const page = parseInt(pageId) || 1;
     const size = parseInt(pageSize) || 10;
 
-    return await this.signalService.findHistory(req.user.uid, page, size)
+    return await this.signalService.findHistory(req.user._id, page, size)
   }
   
   @Post('favorite/:signalId')
@@ -122,14 +144,14 @@ export class SignalController {
     @Param('signalId') signalId: string,
     @Req() req: AuthenticatedRequest
   ) {
-    console.log(`User ${req.user.uid} favorited a new signal id ${signalId}`);
-    return await this.signalService.toggleFavouriteSignal(req.user.uid, signalId)
+    console.log(`User ${req.user._id} favorited a new signal id ${signalId}`);
+    return await this.signalService.toggleFavouriteSignal(req.user._id, signalId)
   }
 
   @Get('favorites')
   async favouriteSignals(@Req() req: AuthenticatedRequest) {
-    console.log(`User ${req.user.uid} asked for favorited signal list`);
-    return await this.signalService.userFavouriteSignals(req.user.uid)
+    console.log(`User ${req.user._id} asked for favorited signal list`);
+    return await this.signalService.userFavouriteSignals(req.user._id)
   }
 
   @Get('filters/:type')

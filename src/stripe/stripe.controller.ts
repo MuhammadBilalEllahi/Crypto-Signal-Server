@@ -128,40 +128,40 @@ export class StripeController {
     };
   }
 
-  @UseGuards(AuthMiddleware)
-  @Post('create-subscription')
-  async createSubscription(
-    @Body() body: CreateSubscriptionDto,
-    @Req() req: AuthenticatedRequest,
-  ) {
-    const { email, _id: userId } = req.user;
+  // @UseGuards(AuthMiddleware)
+  // @Post('create-subscription')
+  // async createSubscription(
+  //   @Body() body: CreateSubscriptionDto,
+  //   @Req() req: AuthenticatedRequest,
+  // ) {
+  //   const { email, _id: userId } = req.user;
 
-    // Create or get customer
-    const customer = await this.stripeService.createCustomer(email);
+  //   // Create or get customer
+  //   const customer = await this.stripeService.createCustomer(email);
 
-    // Create subscription
-    const subscription = await this.stripeService.createSubscription(
-      body.priceId,
-      customer.id,
-    );
+  //   // Create subscription
+  //   const subscription = await this.stripeService.createSubscription(
+  //     body.priceId,
+  //     customer.id,
+  //   );
 
-    // Get the subscription plan
-    // const subscriptionPlan = await this.subscriptionService.findOneById(body.subscriptionId);
+  //   // Get the subscription plan
+  //   // const subscriptionPlan = await this.subscriptionService.findOneById(body.subscriptionId);
 
-    // Update user's subscription
-    await this.userSubscribesService.subscribeToPlan(
-      userId, 
-      body.priceId,
-      body.productId,
-      email,
-    );
+  //   // Update user's subscription
+  //   await this.userSubscribesService.subscribeToPlan(
+  //     userId, 
+  //     body.priceId,
+  //     body.productId,
+  //     email,
+  //   );
 
-    return {
-      subscriptionId: subscription.id,
-      clientSecret: (subscription.latest_invoice as any).payment_intent
-        .client_secret,
-    };
-  }
+  //   return {
+  //     subscriptionId: subscription.id,
+  //     clientSecret: (subscription.latest_invoice as any).payment_intent
+  //       .client_secret,
+  //   };
+  // }
 
   @UseGuards(AuthMiddleware)
   @Post('cancel-subscription')
