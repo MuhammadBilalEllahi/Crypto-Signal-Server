@@ -9,7 +9,6 @@ import { AdminMiddleware } from 'src/auth/admin.middleware';
 interface AuthenticatedRequest extends Request {
   user: {
     _id: string;
-    uid: string;
     email: string;
   }
 }

@@ -357,7 +357,7 @@ export class SignalService {
     }
 
     // Fetch user's favorite signals
-    // const user = await this.userModel.findOne({ uid, isDeleted: false }).select('favoriteSignals');
+    // const user = await this.userModel.findOne({ _id, isDeleted: false }).select('favoriteSignals');
     const favoriteSignalIds = await this.redisService.get(`user_favourite_signals_${_id}`) as string;
     console.log("favoriteSignalIds", favoriteSignalIds);
     
@@ -453,16 +453,16 @@ async toggleFavouriteSignal(_id: string, signalId: string) {
   return updateResult;
 }
 
-async userFavouriteSignals(uid: string, page: number = 1, pageSize: number = 10) {
-  console.log("Checking user favourite signals in Redis", `user_favourite_signals_${uid}`);
+async userFavouriteSignals(_id: string, page: number = 1, pageSize: number = 10) {
+  console.log("Checking user favourite signals in Redis", `user_favourite_signals_${_id}`);
   
   // Check if all favorite signals are cached in Redis
-  if (!await this.redisService.exists(`user_favourite_signals_${uid}`)) {
+  if (!await this.redisService.exists(`user_favourite_signals_${_id}`)) {
     console.log("Fetching user favourite signals from database");
     
     // Fetch all favorite signals from the database
     const user = await this.userModel
-      .findOne({ uid })
+      .findOne({ _id })
       .populate({
         path: 'favoriteSignals',
         model: 'Signal',
@@ -482,11 +482,11 @@ async userFavouriteSignals(uid: string, page: number = 1, pageSize: number = 10)
     }));
 
     // Store all favorite signals in Redis
-    await this.redisService.set(`user_favourite_signals_${uid}`, JSON.stringify(favoritesWithFlag));
+    await this.redisService.set(`user_favourite_signals_${_id}`, JSON.stringify(favoritesWithFlag));
   }
 
   // Retrieve all favorite signals from Redis
-  const userFavouriteSignals = await this.redisService.get(`user_favourite_signals_${uid}`);
+  const userFavouriteSignals = await this.redisService.get(`user_favourite_signals_${_id}`);
   const allFavorites = JSON.parse(userFavouriteSignals as string) as Signal[];
 
   const total = allFavorites.length;

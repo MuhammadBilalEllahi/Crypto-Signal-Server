@@ -61,10 +61,16 @@ export class StripeService {
     return prices.data;
   }
 
-  async listPricesAndCheckUserSubscribe(_id: string): Promise<{data: Stripe.Price[], message: string}> {
+  async listPricesAndCheckUserSubscribe(_id: string): Promise<{data: Stripe.Price[], message: string, subscribedPlanId?: string, subscribedProductId?: string}> {
     const userSubscribes = await this.userSubscribeModel.findById(_id);
-    if(userSubscribes && userSubscribes.status === 'active'){
-      return {message: 'alreadySubscribed', data: []};
+    let message = 'notSubscribed';
+    let subscribedPlanId: string | undefined = undefined;
+    let subscribedProductId: string | undefined = undefined;
+
+    if (userSubscribes && userSubscribes.status === 'active') {
+      message = 'alreadySubscribed';
+      subscribedPlanId = userSubscribes.stripePriceId; 
+      subscribedProductId = userSubscribes.stripeProductId; 
     }
 
     const prices = await this.stripe.prices.list({
@@ -72,7 +78,7 @@ export class StripeService {
       expand: ['data.product'],
     });
     console.log("______[listPrices]prices", prices);
-    return {data: prices.data, message: 'notSubscribed'};
+    return {data: prices.data, message, subscribedPlanId, subscribedProductId};
   }
 
   async listSubscriptions(): Promise<StripeSubscription[]> {
