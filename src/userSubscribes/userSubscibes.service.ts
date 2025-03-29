@@ -49,23 +49,28 @@ export class UserSubscribesService {
         if (!userData) {
             throw new Error('User not found');
         }
+        const userSubscribeData = await this.userSubscribeModel.findByIdAndUpdate(userId, { status: 'pending', stripeProductId: productId, stripePriceId: priceId }).exec();
+        if(!userSubscribeData){
+            await this.userSubscribeModel.create({
+                subscription: subscription._id,
+                _id: userId,
+                user: userId,
+                stripeProductId: productId,
+                stripePriceId: priceId,
+                status: 'pending',
+                startDate: new Date(),
+                endDate: new Date(Date.now() + subscription.duration * 24 * 60 * 60 * 1000),
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            });
+        }
         
-        await this.userSubscribeModel.create({
-            subscription: subscription._id,
-            _id: userId,
-            user: userId,
-            stripeProductId: productId,
-            stripePriceId: priceId,
-            status: 'pending',
-            startDate: new Date(),
-            endDate: new Date(Date.now() + subscription.duration * 24 * 60 * 60 * 1000),
-            createdAt: new Date(),
-            updatedAt: new Date(),
-        });
+        
 
         
 
         let customer =await this.stripeService.getCustomer(userEmail);
+        console.log("CUSTOMER: ", customer);
         if(!customer){
              customer = await this.stripeService.createCustomer(userEmail);
         }
@@ -73,7 +78,11 @@ export class UserSubscribesService {
         await this.userSubscribeModel.findByIdAndUpdate(userId, { stripeCustomerId: customer.id }).exec();
         const subscriptionData = await this.stripeService.createSubscription(priceId, customer.id);
         await this.userSubscribeModel.findByIdAndUpdate(userId, { stripeSubscriptionId: subscriptionData.id }).exec();
-        return subscriptionData;
+        return {
+            proceedTOPaymentPage: true,
+            customerId: customer.id,
+            
+        };
     }
 
     async refundSubscription(id: string) {
